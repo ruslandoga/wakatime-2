@@ -20,10 +20,14 @@ defmodule W2Web.Router do
     get "/", PageController, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", W2Web do
-  #   pipe_through :api
-  # end
+  scope "/", W2Web do
+    pipe_through :api
+
+    post "/heartbeats", HeartbeatController, :create
+    post "/heartbeats/v1/users/current/heartbeats.bulk", HeartbeatController, :create
+    post "/users/current/heartbeats.bulk", HeartbeatController, :create
+    post "/plugins/errors", HeartbeatController, :ignore
+  end
 
   # Enables LiveDashboard only for development
   #
