@@ -2,7 +2,6 @@ import Config
 
 # Configure your database
 config :w2, W2.Repo,
-  database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file)),
   pool_size: 5,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
