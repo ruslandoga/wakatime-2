@@ -2,8 +2,8 @@ defmodule W2.Repo.Migrations.AddHeartbeats do
   use Ecto.Migration
 
   def change do
-    create table(:heartbeats, primary_key: false, options: "strict") do
-      add :time, :real, null: false
+    create table(:heartbeats, primary_key: false, options: "strict, without rowid") do
+      add :time, :real, null: false, primary_key: true
       add :entity, :text, null: false
       add :type, :text, null: false
       add :category, :text
@@ -19,6 +19,6 @@ defmodule W2.Repo.Migrations.AddHeartbeats do
       add :operating_system, :text
     end
 
-    create index(:heartbeats, [:time])
+    # create index(:heartbeats, [:time])
   end
 end

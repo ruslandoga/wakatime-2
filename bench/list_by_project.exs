@@ -1,7 +1,7 @@
 alias Exqlite.Sqlite3
 
 {:ok, conn} = Sqlite3.open(W2.Repo.config()[:database])
-{:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats")
+{:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats order by time asc")
 
 defmodule Durations do
   def compute(conn, stmt, start_time, prev_time, durations) do
