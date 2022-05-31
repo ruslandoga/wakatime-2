@@ -1,6 +1,7 @@
 defmodule W2.DurationsTest do
   use W2.DataCase
   alias W2.Durations
+  doctest Durations, import: true
 
   test "project switch" do
     assert totals([
@@ -42,7 +43,7 @@ defmodule W2.DurationsTest do
   end
 
   def totals([{time, project} | heartbeats]) do
-    Durations.hourly_totals(heartbeats, time, time, project, %{}, %{})
+    Durations.bucket_totals(heartbeats, time, time, project, %{}, %{}, _hour = 3600)
   end
 
   def totals([]) do

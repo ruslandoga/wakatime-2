@@ -106,76 +106,109 @@ defmodule W2.Durations do
         %{}
 
       [{time, project} | heartbeats] ->
-        hourly_totals(
+        bucket_totals(
           heartbeats,
           time,
           # TODO _prev_time = nil?
           _prev_time = time,
           project,
           _inner_acc = %{},
-          _outer_acc = %{}
+          _outer_acc = %{},
+          interval(from, to)
         )
     end
   end
 
-  @compile {:inline, hour: 1}
-  def hour(time) do
-    div(round(time), 3600)
+  @hour_in_seconds 3600
+  @day_in_seconds 24 * @hour_in_seconds
+
+  @doc """
+
+      iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-06 00:00:00Z])
+      86400
+
+      iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-05 00:00:00Z])
+      3600
+
+      iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-01 23:00:00Z])
+      1800
+
+      iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-01 04:00:00Z])
+      600
+
+  """
+  def interval(from, to) do
+    diff = time(to) - time(from)
+
+    cond do
+      # TODO years, months, weeks
+      diff > 4 * @day_in_seconds -> @day_in_seconds
+      diff > @day_in_seconds -> @hour_in_seconds
+      diff > 12 * @hour_in_seconds -> 30 * 60
+      diff > 6 * @hour_in_seconds -> 15 * 60
+      diff > 3 * @hour_in_seconds -> 10 * 60
+      diff > 1800 -> 60
+      true -> 15
+    end
   end
 
-  def hourly_totals(
+  @compile {:inline, bucket: 2}
+  def bucket(time, interval) do
+    div(round(time), interval)
+  end
+
+  def bucket_totals(
         [{time, project} | heartbeats],
         start_time,
         prev_time,
         prev_project,
         inner_acc,
-        outer_acc
+        outer_acc,
+        interval
       ) do
     same_project? = project == prev_project
     same_duration? = time - prev_time < 300
-    same_hour? = hour(start_time) == hour(time)
+    same_bucket? = bucket(start_time, interval) == bucket(time, interval)
 
-    if same_hour? and same_project? and same_duration? do
-      hourly_totals(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
+    if same_bucket? and same_project? and same_duration? do
+      bucket_totals(heartbeats, start_time, time, project, inner_acc, outer_acc, interval)
     else
       {end_time, next_start_time, prev_time} =
         cond do
-          same_duration? and same_hour? -> {time, time, time}
-          same_duration? -> {hour(time) * 3600, hour(time) * 3600, time}
-          true -> {prev_time, time, time}
+          same_duration? and same_bucket? ->
+            {time, time, time}
+
+          same_duration? ->
+            {bucket(time, interval) * interval, bucket(time, interval) * interval, time}
+
+          true ->
+            {prev_time, time, time}
         end
 
       add = end_time - start_time
       inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
 
-      if same_hour? do
-        hourly_totals(
+      if same_bucket? do
+        bucket_totals(
           heartbeats,
           next_start_time,
           prev_time,
           project,
           inner_acc,
-          outer_acc
+          outer_acc,
+          interval
         )
       else
-        outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
-
-        hourly_totals(
-          heartbeats,
-          next_start_time,
-          prev_time,
-          project,
-          _inner_acc = %{},
-          outer_acc
-        )
+        outer_acc = Map.put(outer_acc, bucket(start_time, interval), inner_acc)
+        bucket_totals(heartbeats, next_start_time, prev_time, project, %{}, outer_acc, interval)
       end
     end
   end
 
-  def hourly_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc) do
+  def bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
     add = prev_time - start_time
     inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-    Map.put(outer_acc, hour(start_time), inner_acc)
+    Map.put(outer_acc, bucket(start_time, interval), inner_acc)
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
