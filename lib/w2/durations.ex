@@ -151,35 +151,10 @@ defmodule W2.Durations do
       hour_switch(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
     else
       {end_time, next_start_time} =
-        if same_hour? do
-          if same_project? do
-            if same_duration? do
-              # eh?
-              raise "eh?"
-            else
-              {prev_time, time}
-            end
-          else
-            if same_duration? do
-              {time, time}
-            else
-              {prev_time, time}
-            end
-          end
-        else
-          if same_project? do
-            if same_duration? do
-              {hour(time) * 3600, hour(time) * 3600}
-            else
-              {prev_time, time}
-            end
-          else
-            if same_duration? do
-              {hour(time) * 3600, hour(time) * 3600}
-            else
-              {prev_time, time}
-            end
-          end
+        cond do
+          same_duration? and same_hour? -> {time, time}
+          same_duration? -> {hour(time) * 3600, hour(time) * 3600}
+          true -> {prev_time, time}
         end
 
       add = end_time - start_time
