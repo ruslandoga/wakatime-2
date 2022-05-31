@@ -145,119 +145,66 @@ defmodule W2.Durations do
       ) do
     same_project? = project == prev_project
     same_duration? = time - prev_time < 300
+    same_hour? = hour(start_time) == hour(time)
 
-    if hour(start_time) == hour(time) do
-      if same_project? do
-        if same_duration? do
-          # same hour, same project, same duration -> continue
-          hour_switch(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
-        else
-          # took a break (>5min) from project, restarted on the same project after sime time
-          # same hour, same project, different duration -> start new duration without filling
-          add = prev_time - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-
-          hour_switch(
-            heartbeats,
-            _start_time = time,
-            _prev_time = nil,
-            project,
-            inner_acc,
-            outer_acc
-          )
-        end
-      else
-        if same_duration? do
-          # project switch while still working
-          # same hour, different project, same duration -> start new duration with filling prev project
-          add = time - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-
-          hour_switch(
-            heartbeats,
-            _start_time = time,
-            _prev_time = nil,
-            project,
-            inner_acc,
-            outer_acc
-          )
-        else
-          # took a break (>5 min) from project, restarted on a different project after some time
-          # same hour, different project, different duration -> start new duration without filling
-          add = prev_time - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-
-          hour_switch(
-            heartbeats,
-            _start_time = time,
-            _prev_time = nil,
-            project,
-            inner_acc,
-            outer_acc
-          )
-        end
-      end
+    if same_hour? and same_project? and same_duration? do
+      hour_switch(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
     else
-      if same_project? do
-        if same_duration? do
-          # different hour, same project, same duration -> split w/o gap (= with filling)
-          add = hour(time) * 3600 - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-          outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
-
-          hour_switch(
-            heartbeats,
-            _start_time = hour(time) * 3600,
-            _prev_time = nil,
-            project,
-            _inner_acc = %{},
-            outer_acc
-          )
+      {end_time, next_start_time} =
+        if same_hour? do
+          if same_project? do
+            if same_duration? do
+              # eh?
+              raise "eh?"
+            else
+              {prev_time, time}
+            end
+          else
+            if same_duration? do
+              {time, time}
+            else
+              {prev_time, time}
+            end
+          end
         else
-          # different hour, same project, different duration -> split w/ gap (= without filling)
-          add = prev_time - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-          outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
-
-          hour_switch(
-            heartbeats,
-            _start_time = time,
-            _prev_time = nil,
-            project,
-            _inner_acc = %{},
-            outer_acc
-          )
+          if same_project? do
+            if same_duration? do
+              {hour(time) * 3600, hour(time) * 3600}
+            else
+              {prev_time, time}
+            end
+          else
+            if same_duration? do
+              {hour(time) * 3600, hour(time) * 3600}
+            else
+              {prev_time, time}
+            end
+          end
         end
+
+      add = end_time - start_time
+      inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
+
+      if same_hour? do
+        hour_switch(
+          heartbeats,
+          next_start_time,
+          _prev_time = nil,
+          project,
+          inner_acc,
+          outer_acc
+        )
       else
-        if same_duration? do
-          # different hour, different project, same duration -> split with filling
-          add = hour(time) * 3600 - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-          outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
+        outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
 
-          hour_switch(
-            heartbeats,
-            _start_time = hour(time) * 3600,
-            _prev_time = nil,
-            project,
-            _inner_acc = %{},
-            outer_acc
-          )
-        else
-          # different hour, different project, differemt duration -> split without filling
-          add = prev_time - start_time
-          inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-          outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
-
-          hour_switch(
-            heartbeats,
-            _start_time = time,
-            _prev_time = nil,
-            project,
-            _inner_acc = %{},
-            outer_acc
-          )
-        end
+        hour_switch(
+          heartbeats,
+          next_start_time,
+          _prev_time = nil,
+          project,
+          _inner_acc = %{},
+          outer_acc
+        )
       end
     end
   end
