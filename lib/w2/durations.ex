@@ -92,7 +92,7 @@ defmodule W2.Durations do
     {durations, seconds, {hours, minutes, rem}}
   end
 
-  def chart_data(from, to) do
+  def bucket_data(from, to) do
     heartbeats =
       "heartbeats"
       |> select([h], {h.time, h.project})
@@ -199,7 +199,7 @@ defmodule W2.Durations do
           interval
         )
       else
-        outer_acc = Map.put(outer_acc, bucket(start_time, interval), inner_acc)
+        outer_acc = Map.put(outer_acc, bucket(start_time, interval) * interval, inner_acc)
         bucket_totals(heartbeats, next_start_time, prev_time, project, %{}, outer_acc, interval)
       end
     end
@@ -208,7 +208,7 @@ defmodule W2.Durations do
   def bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
     add = prev_time - start_time
     inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-    Map.put(outer_acc, bucket(start_time, interval), inner_acc)
+    Map.put(outer_acc, bucket(start_time, interval) * interval, inner_acc)
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)

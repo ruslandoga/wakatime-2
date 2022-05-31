@@ -11,7 +11,7 @@ defmodule W2.DurationsTest do
              {unix(~U[2022-01-01 12:04:19Z]), "w2"},
              {unix(~U[2022-01-01 12:05:19Z]), "w2"}
            ]) == %{
-             hour(~U[2022-01-01 12:00:00Z]) => %{
+             unix(~U[2022-01-01 12:00:00Z]) => %{
                "w1" => 7,
                "w2" => 60
              }
@@ -24,8 +24,8 @@ defmodule W2.DurationsTest do
              {unix(~U[2022-01-01 12:59:13Z]), "w1"},
              {unix(~U[2022-01-01 13:00:18Z]), "w1"}
            ]) == %{
-             hour(~U[2022-01-01 12:00:00Z]) => %{"w1" => 108},
-             hour(~U[2022-01-01 13:00:00Z]) => %{"w1" => 18}
+             unix(~U[2022-01-01 12:00:00Z]) => %{"w1" => 108},
+             unix(~U[2022-01-01 13:00:00Z]) => %{"w1" => 18}
            }
   end
 
@@ -37,8 +37,8 @@ defmodule W2.DurationsTest do
              {unix(~U[2022-01-01 13:04:19Z]), "w1"},
              {unix(~U[2022-01-01 13:05:19Z]), "w1"}
            ]) == %{
-             hour(~U[2022-01-01 12:00:00Z]) => %{"w1" => 60},
-             hour(~U[2022-01-01 13:00:00Z]) => %{"w1" => 61}
+             unix(~U[2022-01-01 12:00:00Z]) => %{"w1" => 60},
+             unix(~U[2022-01-01 13:00:00Z]) => %{"w1" => 61}
            }
   end
 
@@ -51,11 +51,7 @@ defmodule W2.DurationsTest do
   end
 
   defp unix(dt) do
-    DateTime.to_unix(dt, :microsecond) / 1_000_000
-  end
-
-  defp hour(dt) do
-    round(unix(dt) / 3600)
+    DateTime.to_unix(dt)
   end
 
   @doc false
