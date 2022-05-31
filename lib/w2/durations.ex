@@ -101,41 +101,28 @@ defmodule W2.Durations do
       |> order_by([h], asc: h.time)
       |> Repo.all()
 
-    hourly_totals(
-      heartbeats,
-      _start_time = nil,
-      _prev_time = nil,
-      _project = nil,
-      _inner_acc = %{},
-      _outer_acc = %{}
-    )
+    case heartbeats do
+      [] ->
+        %{}
+
+      [{time, project} | heartbeats] ->
+        hourly_totals(
+          heartbeats,
+          time,
+          _prev_time = nil,
+          project,
+          _inner_acc = %{},
+          _outer_acc = %{}
+        )
+    end
   end
-
-  # project switch
-
-  _in = [
-    {~U[2022-01-01 12:04:12Z], "w1"},
-    {~U[2022-01-01 12:04:13Z], "w1"},
-    {~U[2022-01-01 12:04:18Z], "w1"},
-    {~U[2022-01-01 12:04:19Z], "w2"},
-    {~U[2022-01-01 12:05:19Z], "w2"}
-  ]
-
-  _out = %{
-    ~U[2022-01-01 12:00:00Z] => %{
-      "w1" => 7,
-      "w2" => 60
-    }
-  }
-
-  # hour switch
 
   @compile {:inline, hour: 1}
   def hour(time) do
-    div(time, 3600)
+    div(round(time), 3600)
   end
 
-  def hour_switch(
+  def hourly_totals(
         [{time, project} | heartbeats],
         start_time,
         prev_time,
@@ -148,7 +135,7 @@ defmodule W2.Durations do
     same_hour? = hour(start_time) == hour(time)
 
     if same_hour? and same_project? and same_duration? do
-      hour_switch(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
+      hourly_totals(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
     else
       {end_time, next_start_time} =
         cond do
@@ -161,7 +148,7 @@ defmodule W2.Durations do
       inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
 
       if same_hour? do
-        hour_switch(
+        hourly_totals(
           heartbeats,
           next_start_time,
           _prev_time = nil,
@@ -172,7 +159,7 @@ defmodule W2.Durations do
       else
         outer_acc = Map.put(outer_acc, hour(start_time), inner_acc)
 
-        hour_switch(
+        hourly_totals(
           heartbeats,
           next_start_time,
           _prev_time = nil,
@@ -184,74 +171,9 @@ defmodule W2.Durations do
     end
   end
 
-  _in = [
-    {~U[2022-01-01 12:58:12Z], "w1"},
-    {~U[2022-01-01 12:59:13Z], "w1"},
-    {~U[2022-01-01 13:00:18Z], "w1"}
-  ]
-
-  _out = %{
-    ~U[2022-01-01 12:00:00Z] => %{"w1" => 108},
-    ~U[2022-01-01 13:00:00Z] => %{"w1" => 18}
-  }
-
-  # duration break
-
-  _in = [
-    {~U[2022-01-01 12:04:12Z], "w1"},
-    {~U[2022-01-01 12:05:12Z], "w1"},
-    {~U[2022-01-01 13:04:18Z], "w1"},
-    {~U[2022-01-01 13:04:19Z], "w1"},
-    {~U[2022-01-01 13:05:19Z], "w1"}
-  ]
-
-  _out = %{
-    ~U[2022-01-01 12:00:00Z] => %{"w1" => 60},
-    ~U[2022-01-01 13:00:00Z] => %{"w1" => 61}
-  }
-
-  # so need to check
-  # - projects are the same as before
-  # - hour(time) == hour(start_time)
-  #     if so, check for same project, same duration (time - prev_time < 300)
-  #     if not, check for same project, same duration (time - prev_time < 300)
-  #       if so, need to split the ongoing duration cleanly between hours
-  #         start_time = start_of_new_hour
-  #         prev_hour = nil
-  #         inner_acc = Map.update(inner_acc, prev_project, start_of_new_hour - prev_time, fn prev_total -> prev_total + start_of_new_hour - prev_time end)
-  #         outer_acc = Map.put(outer_acc, prev_time_hour, inner_acc)
-  #         inner_acc = %{}
-  #   if not, move inner_acc into outer_acc, inner_acc = %{}, start_time = nil,
-  # - current duration, time - prev_time < 300 (5 min)
-
-  defp hourly_totals(
-         [{time, project} | heartbeats],
-         start_time,
-         prev_time,
-         prev_project,
-         inner_acc,
-         outer_acc
-       ) do
-    if start_time do
-      if prev_time do
-        hour = div(time, 3600)
-        prev_hour = div(prev_time, 3600)
-
-        if project == prev_project do
-          if hour == prev_hour do
-          else
-          end
-        end
-      else
-        # no prev heartbeat
-        # check for same hour
-        # check for same project
-        # check that within 300 sec of each other
-        hourly_totals(heartbeats, start_time, time, prev_project, inner_acc, outer_acc)
-      end
-    else
-      hourly_totals(heartbeats, start_time, _prev_time = nil, project, inner_acc, outer_acc)
-    end
+  # TODO
+  def hourly_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc) do
+    {start_time, prev_time, prev_project, inner_acc, outer_acc}
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
