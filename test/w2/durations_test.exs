@@ -50,10 +50,16 @@ defmodule W2.DurationsTest do
   end
 
   defp unix(dt) do
-    DateTime.to_unix(dt)
+    DateTime.to_unix(dt, :microsecond) / 1_000_000
   end
 
   defp hour(dt) do
     round(unix(dt) / 3600)
+  end
+
+  @doc false
+  def trace do
+    # Rexbug.start("W2.Durations :: return,stack")
+    Rexbug.start("W2.Durations", msgs: 10000)
   end
 end
