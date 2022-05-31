@@ -77,3 +77,7 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+if config_env() == :dev do
+  config :w2, W2.Repo, database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file))
+end

@@ -72,13 +72,24 @@ defmodule W2.Durations do
 
   """
   def list_by_project(from, to) do
-    by_project_q(from, to)
-    |> select([d], %{
-      project: d.project,
-      from: type(fragment("min(?)", d.time), UnixTime),
-      to: type(fragment("max(?)", d.time), UnixTime)
-    })
-    |> Repo.all()
+    durations =
+      by_project_q(from, to)
+      |> select([d], %{
+        project: d.project,
+        from: type(fragment("min(?)", d.time), UnixTime),
+        to: type(fragment("max(?)", d.time), UnixTime)
+      })
+      |> Repo.all()
+
+    seconds =
+      Enum.reduce(durations, 0, fn %{from: from, to: to}, acc ->
+        DateTime.diff(to, from) + acc
+      end)
+
+    {hours, rem} = {div(seconds, 3600), rem(seconds, 3600)}
+    {minutes, rem} = {div(rem, 60), rem(rem, 60)}
+
+    {durations, seconds, {hours, minutes, rem}}
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
