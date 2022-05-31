@@ -28,13 +28,13 @@ defmodule Dev do
 
   def run do
     {:ok, conn} = Sqlite3.open("w2_bench.db")
-    {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats")
+    {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats order by time asc")
     _durations = durations(conn, stmt, _start_time = nil, _prev_time = nil, _durations = [])
   end
 
   def prepare do
     {:ok, conn} = Sqlite3.open("w2_bench.db")
-    {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats")
+    {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats order by time asc")
     {conn, stmt}
   end
 
