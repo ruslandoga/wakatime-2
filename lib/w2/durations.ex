@@ -109,7 +109,8 @@ defmodule W2.Durations do
         hourly_totals(
           heartbeats,
           time,
-          _prev_time = nil,
+          # TODO _prev_time = nil?
+          _prev_time = time,
           project,
           _inner_acc = %{},
           _outer_acc = %{}
@@ -137,11 +138,11 @@ defmodule W2.Durations do
     if same_hour? and same_project? and same_duration? do
       hourly_totals(heartbeats, start_time, _prev_time = time, project, inner_acc, outer_acc)
     else
-      {end_time, next_start_time} =
+      {end_time, next_start_time, prev_time} =
         cond do
-          same_duration? and same_hour? -> {time, time}
-          same_duration? -> {hour(time) * 3600, hour(time) * 3600}
-          true -> {prev_time, time}
+          same_duration? and same_hour? -> {time, time, time}
+          same_duration? -> {hour(time) * 3600, hour(time) * 3600, time}
+          true -> {prev_time, time, time}
         end
 
       add = end_time - start_time
@@ -151,7 +152,7 @@ defmodule W2.Durations do
         hourly_totals(
           heartbeats,
           next_start_time,
-          _prev_time = nil,
+          prev_time,
           project,
           inner_acc,
           outer_acc
@@ -162,7 +163,7 @@ defmodule W2.Durations do
         hourly_totals(
           heartbeats,
           next_start_time,
-          _prev_time = nil,
+          prev_time,
           project,
           _inner_acc = %{},
           outer_acc
@@ -171,9 +172,10 @@ defmodule W2.Durations do
     end
   end
 
-  # TODO
   def hourly_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc) do
-    {start_time, prev_time, prev_project, inner_acc, outer_acc}
+    add = prev_time - start_time
+    inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
+    Map.put(outer_acc, hour(start_time), inner_acc)
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
