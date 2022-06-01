@@ -26,7 +26,7 @@ defmodule Dev do
   #   |> Enum.into([])
   # end)
 
-  def run do
+  def _run do
     {:ok, conn} = Sqlite3.open("w2_bench.db")
     {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats order by time asc")
     _durations = durations(conn, stmt, _start_time = nil, _prev_time = nil, _durations = [])

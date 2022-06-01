@@ -113,9 +113,11 @@ defmodule W2.Durations do
           _prev_time = time,
           project,
           _inner_acc = %{},
-          _outer_acc = %{},
+          _outer_acc = [],
           interval(from, to)
         )
+        |> :lists.reverse()
+        |> Enum.map(fn [k, v] -> [DateTime.from_unix!(k), v] end)
     end
   end
 
@@ -154,7 +156,7 @@ defmodule W2.Durations do
 
   @compile {:inline, bucket: 2}
   def bucket(time, interval) do
-    div(round(time), interval)
+    div(floor(time), interval)
   end
 
   def bucket_totals(
@@ -199,7 +201,7 @@ defmodule W2.Durations do
           interval
         )
       else
-        outer_acc = Map.put(outer_acc, bucket(start_time, interval) * interval, inner_acc)
+        outer_acc = [[bucket(start_time, interval) * interval, inner_acc] | outer_acc]
         bucket_totals(heartbeats, next_start_time, prev_time, project, %{}, outer_acc, interval)
       end
     end
@@ -208,7 +210,7 @@ defmodule W2.Durations do
   def bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
     add = prev_time - start_time
     inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-    Map.put(outer_acc, bucket(start_time, interval) * interval, inner_acc)
+    [[bucket(start_time, interval) * interval, inner_acc] | outer_acc]
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
