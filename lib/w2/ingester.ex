@@ -3,7 +3,9 @@ defmodule W2.Ingester do
   alias __MODULE__.Heartbeat
 
   def insert_heartbeats(heartbeats) do
-    Repo.insert_all(Heartbeat, cast_heartbeats(heartbeats))
+    result = Repo.insert_all(Heartbeat, cast_heartbeats(heartbeats))
+    Phoenix.PubSub.broadcast!(W2.PubSub, "heartbeats", {W2.Ingester, :heartbeat})
+    result
   end
 
   @doc false

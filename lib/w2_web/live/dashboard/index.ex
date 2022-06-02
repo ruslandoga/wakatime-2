@@ -1,6 +1,6 @@
 defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
-  alias W2.Durations
+  alias W2.{Durations, Ingester}
 
   @impl true
   def render(assigns) do
@@ -40,6 +40,10 @@ defmodule W2Web.DashboardLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
+    end
+
     {:ok, assign(socket, from: nil, to: nil)}
   end
 
@@ -55,6 +59,11 @@ defmodule W2Web.DashboardLive.Index do
 
   def handle_params(_params, _uri, socket) do
     {:noreply, socket |> assign(from: nil, to: nil) |> fetch_data()}
+  end
+
+  @impl true
+  def handle_info({Ingester, :heartbeat}, socket) do
+    {:noreply, fetch_data(socket)}
   end
 
   defp fetch_data(socket) do
