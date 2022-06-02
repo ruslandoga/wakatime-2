@@ -9,9 +9,9 @@ defmodule W2Web.DashboardLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen w-full bg-red-100 flex font-mono">
-      <div class="w-3/4 bg-red-200 flex flex-col">
-        <div class="px-4 pt-4 pb-2 h-1/2">
+    <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
+      <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
+        <div class="px-4 pt-4 pb-2 md:h-1/2">
           <div class="relative h-full bg-red-900">
             buckets: <%= Jason.encode!(@buckets) %>
             <%
@@ -29,7 +29,7 @@ defmodule W2Web.DashboardLive.Index do
             <% end %>
           </div>
         </div>
-        <div class="px-4 pb-4 pt-2 h-1/2">
+        <div class="px-4 pb-4 pt-2 md:h-1/2">
           <div class="relative bg-red-800 h-full">
           <%# timeline: <%= Jason.encode!(@timeline) %>
           <%
@@ -51,7 +51,7 @@ defmodule W2Web.DashboardLive.Index do
           </div>
         </div>
       </div>
-      <div class="w-1/4 bg-red-300">
+      <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
         <div class="p-4 font-semibold ">
           Total <%= format_time(@total) %>
         </div>
@@ -64,7 +64,7 @@ defmodule W2Web.DashboardLive.Index do
             <tbody class="divide-y divide-red-700">
               <%= for {project, total} <- @projects do %>
                 <tr>
-                  <td class="px-1 font-medium hover:text-red-500 cursor-pointer"><%= project %></td>
+                  <td class="px-1 font-medium hover:text-red-500 cursor-pointer text-ellipsis"><%= project %></td>
                   <td class="font-medium"><%= format_time(total) %></td>
                 </tr>
               <% end %>
