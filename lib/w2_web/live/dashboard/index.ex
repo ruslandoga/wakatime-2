@@ -9,45 +9,63 @@ defmodule W2Web.DashboardLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen w-full bg-red-100 flex">
+    <div class="min-h-screen w-full bg-red-100 flex font-mono">
       <div class="w-3/4 bg-red-200 flex flex-col">
-        <div class="relative m-4 h-1/2 overflow-hidden">
-          buckets: <%= Jason.encode!(@buckets) %>
+        <div class="px-4 pt-4 pb-2 h-1/2">
+          <div class="relative h-full bg-red-900">
+            buckets: <%= Jason.encode!(@buckets) %>
+            <%
+              to = DateTime.from_naive!(@to || NaiveDateTime.utc_now(), "Etc/UTC")
+              from = DateTime.from_naive!(@from || add_days(to, -4), "Etc/UTC")
+              to = DateTime.to_unix(to)
+              from = DateTime.to_unix(from)
+              range = to - from
+              interval = Durations.interval(from, to)
+              width = interval / range
+            %>
+            <%= for [time, totals] <- @buckets do %>
+              <% height = Enum.reduce(totals, 0, fn {_project, total}, acc -> acc + total end) %>
+              <div class="absolute bg-red-400" style={"bottom:0;left:#{(time - from) / range * 100}%;width:#{width * 100}%;height:#{height / interval * 100}%;"}></div>
+            <% end %>
+          </div>
+        </div>
+        <div class="px-4 pb-4 pt-2 h-1/2">
+          <div class="relative bg-red-800 h-full">
+          <%# timeline: <%= Jason.encode!(@timeline) %>
           <%
             to = DateTime.from_naive!(@to || NaiveDateTime.utc_now(), "Etc/UTC")
-            from = DateTime.from_naive!(@from || add_days(to, -1), "Etc/UTC")
+            from = DateTime.from_naive!(@from || add_days(to, -4), "Etc/UTC")
             to = DateTime.to_unix(to)
             from = DateTime.to_unix(from)
             range = to - from
-            interval = Durations.interval(from, to)
-            width = interval / range
           %>
-          <%= for [time, totals] <- @buckets do %>
-            <% height = Enum.reduce(totals, 0, fn {_project, total}, acc -> acc + total end) %>
-            <div class="absolute whitespace-nowrap bg-red-400" style={"bottom:0;left:#{(time - from) / range * 100}%;width:#{width * 100}%;height:#{height / interval * 100}%;"}>
+
+          <%= for {project, durations} <- @timeline do %>
+            <div class="relative h-10">
+              <%= project %>
+              <%= for [duration_from, duration_to] <- durations do %>
+                <div class="absolute bg-red-200 h-full" style={"top:0;left:#{(duration_from-from)/range*100}%;width:#{(duration_to-duration_from)/range*100}%;"}></div>
+              <% end %>
             </div>
           <% end %>
-        </div>
-        <div class="p-4">
-          timeline: <%= Jason.encode!(@timeline) %>
+          </div>
         </div>
       </div>
       <div class="w-1/4 bg-red-300">
-        <div class="p-4">
+        <div class="p-4 font-semibold ">
           Total <%= format_time(@total) %>
         </div>
-        <div class="p-4">
-          <h3>Projects</h3>
-          <table class="border w-full">
-            <thead class="border divide-x">
+        <div class="px-4 pb-4">
+          <table class="border w-full border-red-700">
+            <thead class="border border-red-700">
               <th class="px-1 text-left">project</th>
               <th class="px-1 text-left">time</th>
             </thead>
-            <tbody class="divide-y">
+            <tbody class="divide-y divide-red-700">
               <%= for {project, total} <- @projects do %>
                 <tr>
-                  <td class="px-1"><%= project %></td>
-                  <td><%= format_time(total) %></td>
+                  <td class="px-1 font-medium hover:text-red-500 cursor-pointer"><%= project %></td>
+                  <td class="font-medium"><%= format_time(total) %></td>
                 </tr>
               <% end %>
             </tbody>
@@ -91,11 +109,16 @@ defmodule W2Web.DashboardLive.Index do
 
   defp fetch_data(socket) do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(socket.assigns.from || add_days(to, -1), "Etc/UTC")
+    from = DateTime.from_naive!(socket.assigns.from || add_days(to, -4), "Etc/UTC")
 
     bucket_data = Durations.bucket_data(from, to)
     total_data = Durations.total_data(from, to)
-    projects_data = Durations.projects_data(from, to)
+
+    projects_data =
+      Durations.projects_data(from, to)
+      # TODO
+      |> Enum.sort_by(fn {_project, time} -> time end, :desc)
+
     timeline_data = Durations.timeline_data(from, to)
 
     socket
