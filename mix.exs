@@ -43,7 +43,6 @@ defmodule W2.MixProject do
       {:phoenix_live_view, "~> 0.17.5"},
       {:floki, ">= 0.30.0", only: :test},
       {:phoenix_live_dashboard, "~> 0.6"},
-      {:esbuild, "~> 0.4", runtime: Mix.env() == :dev},
       {:swoosh, "~> 1.3"},
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
@@ -63,7 +62,7 @@ defmodule W2.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup"],
+      setup: ["deps.get", "ecto.setup", "cmd npm ci --prefix assets"],
       "ecto.setup": [
         "ecto.create",
         "ecto.migrate --log-migrations-sql",
@@ -71,7 +70,12 @@ defmodule W2.MixProject do
       ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.deploy": ["esbuild default --minify", "phx.digest"]
+      "assets.deploy": [
+        "cmd npm ci --prefix assets",
+        "cmd npm run deploy:css --prefix assets",
+        "cmd npm run deploy:js --prefix assets",
+        "phx.digest"
+      ]
     ]
   end
 end

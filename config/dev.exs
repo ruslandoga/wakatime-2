@@ -8,10 +8,6 @@ config :w2, W2.Repo,
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
-#
-# The watchers configuration can be used to run external
-# watchers to your application. For example, we use it
-# with esbuild to bundle .js and .css sources.
 config :w2, W2Web.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
@@ -21,8 +17,8 @@ config :w2, W2Web.Endpoint,
   debug_errors: true,
   secret_key_base: "oqVCSPk5goT69U3PIIiuHCLsrh6xwchcmLlw82d8OQhRsaOWU87bEEONUPmKXEGm",
   watchers: [
-    # Start the esbuild watcher by calling Esbuild.install_and_run(:default, args)
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
+    npm: ["run", "watch:js", cd: Path.expand("../assets", __DIR__)],
+    npm: ["run", "watch:css", cd: Path.expand("../assets", __DIR__)]
   ]
 
 # ## SSL Support
