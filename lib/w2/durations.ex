@@ -4,6 +4,48 @@ defmodule W2.Durations do
 
   import Ecto.Query
 
+  def bucket_data(from, to) do
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> bucket_totals(interval(from, to))
+  end
+
+  def total_data(from, to) do
+    "heartbeats"
+    |> select([h], h.time)
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> total()
+  end
+
+  def projects_data(from, to) do
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> project_totals()
+  end
+
+  def timeline_data(from, to) do
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> timeline()
+  end
+
+  # the rest is eh
+
   defmodule UnixTime do
     use Ecto.Type
 
@@ -90,46 +132,6 @@ defmodule W2.Durations do
     {minutes, rem} = {div(rem, 60), rem(rem, 60)}
 
     {durations, seconds, {hours, minutes, rem}}
-  end
-
-  def bucket_data(from, to) do
-    "heartbeats"
-    |> select([h], {h.time, h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> bucket_totals(interval(from, to))
-  end
-
-  def total_data(from, to) do
-    "heartbeats"
-    |> select([h], h.time)
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> total()
-  end
-
-  def projects_data(from, to) do
-    "heartbeats"
-    |> select([h], {h.time, h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> project_totals()
-  end
-
-  def timeline_data(from, to) do
-    "heartbeats"
-    |> select([h], {h.time, h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> timeline()
   end
 
   @doc false
