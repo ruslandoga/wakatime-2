@@ -102,6 +102,34 @@ defmodule W2.Durations do
     |> bucket_totals(interval(from, to))
   end
 
+  def total_data(from, to) do
+    "heartbeats"
+    |> select([h], h.time)
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> total()
+  end
+
+  def total([time | rest]) do
+    total(rest, time, 0)
+  end
+
+  def total([]), do: 0
+
+  defp total([time | heartbeats], prev_time, total) do
+    diff = time - prev_time
+
+    if diff > 300 do
+      total(heartbeats, time, total)
+    else
+      total(heartbeats, time, total + diff)
+    end
+  end
+
+  defp total([], _prev_time, total), do: total
+
   @hour_in_seconds 3600
   @day_in_seconds 24 * @hour_in_seconds
 
