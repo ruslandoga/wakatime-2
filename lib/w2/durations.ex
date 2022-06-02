@@ -132,6 +132,7 @@ defmodule W2.Durations do
     |> timeline()
   end
 
+  @doc false
   def timeline([{time, project} | rest]) do
     rest
     |> timeline(time, time, project, %{})
@@ -161,6 +162,7 @@ defmodule W2.Durations do
     Map.update(acc, prev_project, [line], &[line | &1])
   end
 
+  @doc false
   def project_totals([{time, project} | rest]) do
     project_totals(rest, time, time, project, %{})
   end
@@ -190,6 +192,7 @@ defmodule W2.Durations do
     Map.update(acc, prev_project, add, &(add + &1))
   end
 
+  @doc false
   def total([time | rest]) do
     total(rest, time, 0)
   end
@@ -246,6 +249,7 @@ defmodule W2.Durations do
     div(floor(time), interval)
   end
 
+  @doc false
   def bucket_totals([{time, project} | heartbeats], interval) do
     bucket_totals(
       heartbeats,
