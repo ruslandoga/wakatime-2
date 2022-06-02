@@ -112,6 +112,45 @@ defmodule W2.Durations do
     |> total()
   end
 
+  def projects_data(from, to) do
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> project_totals()
+  end
+
+  def project_totals([{time, project} | rest]) do
+    project_totals(rest, time, time, project, %{})
+  end
+
+  def project_totals([]) do
+    %{}
+  end
+
+  defp project_totals([{time, project} | rest], start_time, prev_time, prev_project, acc) do
+    if time - prev_time < 300 do
+      if project == prev_project do
+        project_totals(rest, start_time, time, project, acc)
+      else
+        add = time - start_time
+        acc = Map.update(acc, prev_project, add, fn prev -> prev + add end)
+        project_totals(rest, time, time, project, acc)
+      end
+    else
+      add = prev_time - start_time
+      acc = Map.update(acc, prev_project, add, fn prev -> prev + add end)
+      project_totals(rest, time, time, project, acc)
+    end
+  end
+
+  defp project_totals([], start_time, prev_time, prev_project, acc) do
+    add = prev_time - start_time
+    Map.update(acc, prev_project, add, fn prev -> prev + add end)
+  end
+
   def total([time | rest]) do
     total(rest, time, 0)
   end

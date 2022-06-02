@@ -80,6 +80,36 @@ defmodule W2.DurationsTest do
     end
   end
 
+  describe "project_totals/1" do
+    test "project switch" do
+      assert Durations.project_totals([
+               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:13Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:18Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:19Z]), "w2"},
+               {unix(~U[2022-01-01 12:05:19Z]), "w2"}
+             ]) == %{"w1" => 7, "w2" => 60}
+    end
+
+    test "hour switch" do
+      assert Durations.project_totals([
+               {unix(~U[2022-01-01 12:58:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:59:13Z]), "w1"},
+               {unix(~U[2022-01-01 13:00:18Z]), "w1"}
+             ]) == %{"w1" => 126}
+    end
+
+    test "duration break" do
+      assert Durations.project_totals([
+               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:05:12Z]), "w1"},
+               {unix(~U[2022-01-01 13:04:18Z]), "w1"},
+               {unix(~U[2022-01-01 13:04:19Z]), "w1"},
+               {unix(~U[2022-01-01 13:05:19Z]), "w1"}
+             ]) == %{"w1" => 121}
+    end
+  end
+
   defp unix(dt) do
     DateTime.to_unix(dt)
   end
