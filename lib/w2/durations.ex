@@ -93,32 +93,13 @@ defmodule W2.Durations do
   end
 
   def bucket_data(from, to) do
-    heartbeats =
-      "heartbeats"
-      |> select([h], {h.time, h.project})
-      |> where([h], h.time > ^time(from))
-      |> where([h], h.time < ^time(to))
-      |> order_by([h], asc: h.time)
-      |> Repo.all()
-
-    case heartbeats do
-      [] ->
-        %{}
-
-      [{time, project} | heartbeats] ->
-        bucket_totals(
-          heartbeats,
-          time,
-          # TODO _prev_time = nil?
-          _prev_time = time,
-          project,
-          _inner_acc = %{},
-          _outer_acc = [],
-          interval(from, to)
-        )
-        |> :lists.reverse()
-        |> Enum.map(fn [k, v] -> [DateTime.from_unix!(k), v] end)
-    end
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> bucket_totals(interval(from, to))
   end
 
   @hour_in_seconds 3600
@@ -159,15 +140,30 @@ defmodule W2.Durations do
     div(floor(time), interval)
   end
 
-  def bucket_totals(
-        [{time, project} | heartbeats],
-        start_time,
-        prev_time,
-        prev_project,
-        inner_acc,
-        outer_acc,
-        interval
-      ) do
+  def bucket_totals([{time, project} | heartbeats], interval) do
+    bucket_totals(
+      heartbeats,
+      time,
+      # TODO _prev_time = nil?
+      _prev_time = time,
+      project,
+      _inner_acc = %{},
+      _outer_acc = [],
+      interval
+    )
+  end
+
+  def bucket_totals([] = heartbeats, _interval), do: heartbeats
+
+  defp bucket_totals(
+         [{time, project} | heartbeats],
+         start_time,
+         prev_time,
+         prev_project,
+         inner_acc,
+         outer_acc,
+         interval
+       ) do
     same_project? = project == prev_project
     same_duration? = time - prev_time < 300
     same_bucket? = bucket(start_time, interval) == bucket(time, interval)
@@ -207,10 +203,10 @@ defmodule W2.Durations do
     end
   end
 
-  def bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
+  defp bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
     add = prev_time - start_time
     inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
-    [[bucket(start_time, interval) * interval, inner_acc] | outer_acc]
+    :lists.reverse([[bucket(start_time, interval) * interval, inner_acc] | outer_acc])
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
