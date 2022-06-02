@@ -2,15 +2,35 @@ defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
 
+  # <span class="transform:rotate(-90deg);transform-origin: bottom left;">
+  #               <%= DateTime.from_unix!(time) %> <%= Jason.encode!(totals) %>
+  #             </span>
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen w-full bg-red-100 flex">
       <div class="w-3/4 bg-red-200 flex flex-col">
-        <div id="bucket-container" class="p-4 bg-blue-100 h-1/2" phx-update="ignore">
-          <div id="bucket" phx-hook="BarChart" class="h-full"></div>
+        <div class="relative m-4 h-1/2 overflow-hidden">
+          buckets: <%= Jason.encode!(@buckets) %>
+          <%
+            to = DateTime.from_naive!(@to || NaiveDateTime.utc_now(), "Etc/UTC")
+            from = DateTime.from_naive!(@from || add_days(to, -1), "Etc/UTC")
+            to = DateTime.to_unix(to)
+            from = DateTime.to_unix(from)
+            range = to - from
+            interval = Durations.interval(from, to)
+            width = interval / range
+          %>
+          <%= for [time, totals] <- @buckets do %>
+            <% height = Enum.reduce(totals, 0, fn {_project, total}, acc -> acc + total end) %>
+            <div class="absolute whitespace-nowrap bg-red-400" style={"bottom:0;left:#{(time - from) / range * 100}%;width:#{width * 100}%;height:#{height / interval * 100}%;"}>
+            </div>
+          <% end %>
         </div>
-        <div>timeline</div>
+        <div class="p-4">
+          timeline: <%= Jason.encode!(@timeline) %>
+        </div>
       </div>
       <div class="w-1/4 bg-red-300">
         <div class="p-4">
@@ -36,6 +56,9 @@ defmodule W2Web.DashboardLive.Index do
       </div>
     </div>
     """
+  end
+
+  defp color(project) do
   end
 
   @impl true
@@ -68,7 +91,7 @@ defmodule W2Web.DashboardLive.Index do
 
   defp fetch_data(socket) do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(socket.assigns.from || week_ago(to), "Etc/UTC")
+    from = DateTime.from_naive!(socket.assigns.from || add_days(to, -1), "Etc/UTC")
 
     bucket_data = Durations.bucket_data(from, to)
     total_data = Durations.total_data(from, to)
@@ -78,16 +101,18 @@ defmodule W2Web.DashboardLive.Index do
     socket
     |> assign(total: total_data)
     |> assign(projects: projects_data)
-    |> push_event("bucket", %{"data" => bucket_data})
-    |> push_event("timeline", %{"data" => timeline_data})
+    |> assign(buckets: bucket_data)
+    # |> push_event("bucket", %{"data" => bucket_data})
+    # |> push_event("timeline", %{"data" => timeline_data})
+    |> assign(timeline: timeline_data)
   end
 
-  @spec week_ago(NaiveDateTime.t()) :: NaiveDateTime.t()
-  defp week_ago(naive) do
+  @spec add_days(NaiveDateTime.t(), integer) :: NaiveDateTime.t()
+  defp add_days(naive, days) do
     time = Time.new!(naive.hour, naive.minute, naive.second)
 
     Date.new!(naive.year, naive.month, naive.day)
-    |> Date.add(-7)
+    |> Date.add(days)
     |> NaiveDateTime.new!(time)
   end
 
