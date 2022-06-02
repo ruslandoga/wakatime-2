@@ -76,8 +76,8 @@ defmodule W2Web.DashboardLive.Index do
     """
   end
 
-  defp color(project) do
-  end
+  # defp color(project) do
+  # end
 
   @impl true
   def mount(_params, _session, socket) do
