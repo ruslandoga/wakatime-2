@@ -122,6 +122,45 @@ defmodule W2.Durations do
     |> project_totals()
   end
 
+  def timeline_data(from, to) do
+    "heartbeats"
+    |> select([h], {h.time, h.project})
+    |> where([h], h.time > ^time(from))
+    |> where([h], h.time < ^time(to))
+    |> order_by([h], asc: h.time)
+    |> Repo.all()
+    |> timeline()
+  end
+
+  def timeline([{time, project} | rest]) do
+    rest
+    |> timeline(time, time, project, %{})
+    |> Map.new(fn {project, timeline} -> {project, :lists.reverse(timeline)} end)
+  end
+
+  def timeline([]), do: %{}
+
+  defp timeline([{time, project} | rest], start_time, prev_time, prev_project, acc) do
+    if time - prev_time < 300 do
+      if project == prev_project do
+        timeline(rest, start_time, time, project, acc)
+      else
+        line = [start_time, time]
+        acc = Map.update(acc, prev_project, [line], &[line | &1])
+        timeline(rest, time, time, project, acc)
+      end
+    else
+      line = [start_time, prev_time]
+      acc = Map.update(acc, prev_project, [line], &[line | &1])
+      timeline(rest, time, time, project, acc)
+    end
+  end
+
+  defp timeline([], start_time, prev_time, prev_project, acc) do
+    line = [start_time, prev_time]
+    Map.update(acc, prev_project, [line], &[line | &1])
+  end
+
   def project_totals([{time, project} | rest]) do
     project_totals(rest, time, time, project, %{})
   end
@@ -136,19 +175,19 @@ defmodule W2.Durations do
         project_totals(rest, start_time, time, project, acc)
       else
         add = time - start_time
-        acc = Map.update(acc, prev_project, add, fn prev -> prev + add end)
+        acc = Map.update(acc, prev_project, add, &(add + &1))
         project_totals(rest, time, time, project, acc)
       end
     else
       add = prev_time - start_time
-      acc = Map.update(acc, prev_project, add, fn prev -> prev + add end)
+      acc = Map.update(acc, prev_project, add, &(add + &1))
       project_totals(rest, time, time, project, acc)
     end
   end
 
   defp project_totals([], start_time, prev_time, prev_project, acc) do
     add = prev_time - start_time
-    Map.update(acc, prev_project, add, fn prev -> prev + add end)
+    Map.update(acc, prev_project, add, &(add + &1))
   end
 
   def total([time | rest]) do
@@ -251,7 +290,7 @@ defmodule W2.Durations do
         end
 
       add = end_time - start_time
-      inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
+      inner_acc = Map.update(inner_acc, prev_project, add, &(add + &1))
 
       if same_bucket? do
         bucket_totals(
@@ -272,7 +311,7 @@ defmodule W2.Durations do
 
   defp bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
     add = prev_time - start_time
-    inner_acc = Map.update(inner_acc, prev_project, add, fn prev -> prev + add end)
+    inner_acc = Map.update(inner_acc, prev_project, add, &(add + &1))
     :lists.reverse([[bucket(start_time, interval) * interval, inner_acc] | outer_acc])
   end
 

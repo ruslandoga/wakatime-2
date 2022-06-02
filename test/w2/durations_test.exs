@@ -110,6 +110,44 @@ defmodule W2.DurationsTest do
     end
   end
 
+  describe "timeline/1" do
+    test "project switch" do
+      assert Durations.timeline([
+               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:13Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:18Z]), "w1"},
+               {unix(~U[2022-01-01 12:04:19Z]), "w2"},
+               {unix(~U[2022-01-01 12:05:19Z]), "w2"}
+             ]) == %{
+               "w1" => [[unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])]],
+               "w2" => [[unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]]
+             }
+    end
+
+    test "hour switch" do
+      assert Durations.timeline([
+               {unix(~U[2022-01-01 12:58:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:59:13Z]), "w1"},
+               {unix(~U[2022-01-01 13:00:18Z]), "w1"}
+             ]) == %{"w1" => [[unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])]]}
+    end
+
+    test "duration break" do
+      assert Durations.timeline([
+               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
+               {unix(~U[2022-01-01 12:05:12Z]), "w1"},
+               {unix(~U[2022-01-01 13:04:18Z]), "w1"},
+               {unix(~U[2022-01-01 13:04:19Z]), "w1"},
+               {unix(~U[2022-01-01 13:05:19Z]), "w1"}
+             ]) == %{
+               "w1" => [
+                 [unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
+                 [unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
+               ]
+             }
+    end
+  end
+
   defp unix(dt) do
     DateTime.to_unix(dt)
   end
