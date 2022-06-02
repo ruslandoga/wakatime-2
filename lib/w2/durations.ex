@@ -6,7 +6,7 @@ defmodule W2.Durations do
 
   def bucket_data(from, to) do
     "heartbeats"
-    |> select([h], {h.time, h.project})
+    |> select([h], {type(h.time, :integer), h.project})
     |> where([h], h.time > ^time(from))
     |> where([h], h.time < ^time(to))
     |> order_by([h], asc: h.time)
@@ -16,7 +16,7 @@ defmodule W2.Durations do
 
   def total_data(from, to) do
     "heartbeats"
-    |> select([h], h.time)
+    |> select([h], type(h.time, :integer))
     |> where([h], h.time > ^time(from))
     |> where([h], h.time < ^time(to))
     |> order_by([h], asc: h.time)
@@ -26,7 +26,7 @@ defmodule W2.Durations do
 
   def projects_data(from, to) do
     "heartbeats"
-    |> select([h], {h.time, h.project})
+    |> select([h], {type(h.time, :integer), h.project})
     |> where([h], h.time > ^time(from))
     |> where([h], h.time < ^time(to))
     |> order_by([h], asc: h.time)
@@ -36,7 +36,7 @@ defmodule W2.Durations do
 
   def timeline_data(from, to) do
     "heartbeats"
-    |> select([h], {h.time, h.project})
+    |> select([h], {type(h.time, :integer), h.project})
     |> where([h], h.time > ^time(from))
     |> where([h], h.time < ^time(to))
     |> order_by([h], asc: h.time)
