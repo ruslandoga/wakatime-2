@@ -41,7 +41,7 @@ defmodule W2Web.DashboardLive.Index do
           %>
 
           <%= for {project, durations} <- @timeline do %>
-            <div class="relative h-10">
+            <div class="relative h-6">
               <%= project %>
               <%= for [duration_from, duration_to] <- durations do %>
                 <div class="absolute bg-red-200 h-full" style={"top:0;left:#{(duration_from-from)/range*100}%;width:#{(duration_to-duration_from)/range*100}%;"}></div>
