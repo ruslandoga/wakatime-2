@@ -17,7 +17,7 @@ defmodule W2Web.Router do
   scope "/", W2Web do
     pipe_through :browser
 
-    get "/", PageController, :index
+    live "/", DashboardLive.Index, :index
   end
 
   scope "/", W2Web do
