@@ -12,6 +12,7 @@ defmodule W2Web.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug W2Web.Plugs.Auth
   end
 
   scope "/", W2Web do
