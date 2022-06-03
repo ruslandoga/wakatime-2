@@ -4,39 +4,89 @@ alias Exqlite.Sqlite3
 {:ok, stmt} = Sqlite3.prepare(conn, "select time from heartbeats order by time asc")
 
 defmodule Durations do
-  def compute(conn, stmt, start_time, prev_time, durations) do
+  def step(conn, stmt, start_time, prev_time, durations) do
     case Sqlite3.step(conn, stmt) do
       {:row, [time]} ->
         if start_time do
           if prev_time do
             if time - prev_time > 300 do
-              compute(conn, stmt, time, nil, [{start_time, prev_time} | durations])
+              step(conn, stmt, time, nil, [{start_time, prev_time} | durations])
             else
-              compute(conn, stmt, start_time, time, durations)
+              step(conn, stmt, start_time, time, durations)
             end
           else
-            compute(conn, stmt, start_time, time, durations)
+            step(conn, stmt, start_time, time, durations)
           end
         else
-          compute(conn, stmt, time, prev_time, durations)
+          step(conn, stmt, time, prev_time, durations)
         end
 
       :done ->
         durations
     end
   end
+
+  def multi_step(conn, stmt, start_time, prev_time, durations) do
+    case Sqlite3.multi_step(conn, stmt, 500) do
+      {:rows, rows} -> multi_step_cont(rows, start_time, prev_time, durations, conn, stmt)
+      {:done, rows} -> multi_step_end(rows, start_time, prev_time, durations)
+    end
+  end
+
+  defp multi_step_cont([[time] | rest], start_time, prev_time, durations, conn, stmt) do
+    if start_time do
+      if prev_time do
+        if time - prev_time > 300 do
+          multi_step_cont(rest, time, nil, [{start_time, prev_time} | durations], conn, stmt)
+        else
+          multi_step_cont(rest, start_time, time, durations, conn, stmt)
+        end
+      else
+        multi_step_cont(rest, start_time, time, durations, conn, stmt)
+      end
+    else
+      multi_step_cont(rest, time, prev_time, durations, conn, stmt)
+    end
+  end
+
+  defp multi_step_cont([], start_time, prev_time, durations, conn, stmt) do
+    multi_step(conn, stmt, start_time, prev_time, durations)
+  end
+
+  defp multi_step_end([[time] | rest], start_time, prev_time, durations) do
+    if start_time do
+      if prev_time do
+        if time - prev_time > 300 do
+          multi_step_end(rest, time, nil, [{start_time, prev_time} | durations])
+        else
+          multi_step_end(rest, start_time, time, durations)
+        end
+      else
+        multi_step_end(rest, start_time, time, durations)
+      end
+    else
+      multi_step_end(rest, time, prev_time, durations)
+    end
+  end
+
+  defp multi_step_end([], start_time, prev_time, durations) do
+    [{start_time, prev_time} | durations]
+  end
 end
 
 Benchee.run(
   %{
     "window" => fn ->
-      W2.Durations.list_by_project(
-        _from = ~U[2022-05-30 10:00:00Z],
-        _to = ~U[2022-05-31 10:00:00Z]
-      )
+      W2.Durations.list_by_project()
+    end,
+    "step" => fn ->
+      Durations.step(conn, stmt, nil, nil, [])
     end,
     "elixir" => fn ->
-      Durations.compute(conn, stmt, nil, nil, [])
+      W2.Durations.total_data(~D[0000-01-01], ~D[2025-01-01])
+    end,
+    "multi_step" => fn ->
+      Durations.multi_step(conn, stmt, nil, nil, [])
     end
   },
   memory_time: 2
