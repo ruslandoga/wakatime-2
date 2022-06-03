@@ -21,6 +21,8 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  config :w2, api_key: System.fetch_env!("API_KEY")
+
   database_path =
     System.get_env("DATABASE_PATH") ||
       raise """
@@ -79,5 +81,10 @@ if config_env() == :prod do
 end
 
 if config_env() == :dev do
+  config :w2, api_key: "406fe41f-6d69-4183-a4cc-121e0c524c2b"
   config :w2, W2.Repo, database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file))
+end
+
+if config_env() == :test do
+  config :w2, api_key: "406fe41f-6d69-4183-a4cc-121e0c524c2b"
 end
