@@ -10,7 +10,8 @@ defmodule W2.MixProject do
       compilers: [:gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: releases()
     ]
   end
 
@@ -50,7 +51,9 @@ defmodule W2.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:benchee, "~> 1.1", only: [:bench]},
-      {:rexbug, "~> 1.0"}
+      {:rexbug, "~> 1.0"},
+      {:sentry, "~> 8.0"},
+      {:finch, "~> 0.12.0"}
     ]
   end
 
@@ -70,6 +73,7 @@ defmodule W2.MixProject do
       ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [
         "cmd npm ci --prefix assets",
         "cmd npm run deploy:css --prefix assets",
@@ -77,5 +81,9 @@ defmodule W2.MixProject do
         "phx.digest"
       ]
     ]
+  end
+
+  defp releases do
+    [w2: [include_executables_for: [:unix]]]
   end
 end
