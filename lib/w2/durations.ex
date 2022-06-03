@@ -233,7 +233,7 @@ defmodule W2.Durations do
 
     cond do
       # TODO years, months, weeks
-      diff > 4 * @day_in_seconds -> @day_in_seconds
+      diff > 7 * @day_in_seconds -> @day_in_seconds
       diff > @day_in_seconds -> @hour_in_seconds
       diff > 12 * @hour_in_seconds -> 30 * 60
       diff > 6 * @hour_in_seconds -> 15 * 60

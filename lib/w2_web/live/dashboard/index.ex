@@ -2,7 +2,7 @@ defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
 
-  @days 4
+  @days 7
 
   @impl true
   def render(assigns) do
@@ -125,7 +125,7 @@ defmodule W2Web.DashboardLive.Index do
   defp table_row(assigns) do
     ~H"""
     <tr class={@color}>
-      <td class={"px-1 font-medium hover:opacity-80 cursor-pointer text-ellipsis"}><%= @project %></td>
+      <td class={"px-1 leading-8 font-medium hover:opacity-50 cursor-pointer text-ellipsis"}><%= @project %></td>
       <td class="font-medium"><%= format_time(@total) %></td>
     </tr>
     """
@@ -185,12 +185,15 @@ defmodule W2Web.DashboardLive.Index do
   end
 
   @colors [
+    "bg-amber-400",
     "bg-green-400",
+    "bg-cyan-500",
     "bg-red-400",
     "bg-blue-400",
-    "bg-cyan-500",
+    "bg-yellow-400",
     "bg-pink-500",
-    "bg-sky-400"
+    "bg-sky-600",
+    "bg-neutral-400"
   ]
 
   @colors_count length(@colors)
