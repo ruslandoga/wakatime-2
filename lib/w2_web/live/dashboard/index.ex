@@ -11,16 +11,16 @@ defmodule W2Web.DashboardLive.Index do
     ~H"""
     <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
       <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
-        <div class="px-4 pt-4 pb-2 md:h-1/2">
+        <div class="px-4 pt-4 pb-2 h-64 md:h-1/2">
           <div class="relative h-full bg-red-900">
-            buckets: <%= Jason.encode!(@buckets) %>
+            <%# buckets: <%= Jason.encode!(@buckets) %>
             <%
               to = DateTime.from_naive!(@to || NaiveDateTime.utc_now(), "Etc/UTC")
               from = DateTime.from_naive!(@from || add_days(to, -4), "Etc/UTC")
               to = DateTime.to_unix(to)
               from = DateTime.to_unix(from)
-              range = to - from
               interval = Durations.interval(from, to)
+              range = to - from + interval
               width = interval / range
             %>
             <%= for [time, totals] <- @buckets do %>
@@ -37,7 +37,8 @@ defmodule W2Web.DashboardLive.Index do
             from = DateTime.from_naive!(@from || add_days(to, -4), "Etc/UTC")
             to = DateTime.to_unix(to)
             from = DateTime.to_unix(from)
-            range = to - from
+            interval = Durations.interval(from, to)
+            range = to - from + interval
           %>
 
           <%= for {project, durations} <- @timeline do %>
