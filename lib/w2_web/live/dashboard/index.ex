@@ -2,10 +2,6 @@ defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
 
-  # <span class="transform:rotate(-90deg);transform-origin: bottom left;">
-  #               <%= DateTime.from_unix!(time) %> <%= Jason.encode!(totals) %>
-  #             </span>
-
   @days 4
 
   @impl true
@@ -13,10 +9,10 @@ defmodule W2Web.DashboardLive.Index do
     ~H"""
     <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
       <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
-        <div class="px-4 pt-4 pb-2 h-64 md:h-1/2">
+        <div class="px-4 pt-4 pb-2 h-64 md:flex-grow">
           <.bar_chart from={@from} to={@to} buckets={@buckets} colors={@colors} />
         </div>
-        <div class="px-4 pb-4 pt-2 md:h-1/2">
+        <div class="px-4 pb-4 pt-2">
           <.timeline from={@from} to={@to} timeline={@timeline} colors={@colors} />
         </div>
       </div>
@@ -42,10 +38,12 @@ defmodule W2Web.DashboardLive.Index do
     assigns = assign(assigns, range: range, from: from, to: to)
 
     ~H"""
-    <div class="relative bg-red-800 h-full">
-      <%= for {project, durations} <- @timeline do %><div class="relative h-6">
-        <%= for [from, to] <- durations do %><.timeline_section x={Float.round((from - @from) / @range * 100, 2)} width={Float.round((to - from) / @range * 100, 2)} color={@colors[project]} /><% end %>
-      </div><% end %>
+    <div class="relative bg-red-800 h-6">
+      <%= for [project, from, to] <- @timeline do %><.timeline_section
+        x={Float.round((from - @from) / @range * 100, 2)}
+        width={Float.round((to - from) / @range * 100, 2)}
+        color={@colors[project]}
+      /><% end %>
     </div>
     """
   end
@@ -75,7 +73,13 @@ defmodule W2Web.DashboardLive.Index do
 
     ~H"""
     <div class="relative h-full bg-red-900">
-      <%= for [time, totals] <- @buckets do %><.bar totals={totals} x={Float.round((time - @from) / @range * 100, 4)} width={@width} max_height={@max_height} colors={@colors} /><% end %>
+      <%= for [time, totals] <- @buckets do %><.bar
+        totals={totals}
+        x={Float.round((time - @from) / @range * 100, 4)}
+        width={@width}
+        max_height={@max_height}
+        colors={@colors}
+      /><% end %>
     </div>
     """
   end
@@ -108,7 +112,11 @@ defmodule W2Web.DashboardLive.Index do
         <th class="px-1 text-left">time</th>
       </thead>
       <tbody class="divide-y divide-red-700">
-        <%= for {project, total} <- @projects do %><.table_row project={project} color={@colors[project]} total={total} /><% end %>
+        <%= for {project, total} <- @projects do %><.table_row
+          project={project}
+          color={@colors[project]}
+          total={total}
+        /><% end %>
       </tbody>
     </table>
     """

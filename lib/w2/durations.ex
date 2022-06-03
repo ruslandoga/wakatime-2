@@ -137,8 +137,8 @@ defmodule W2.Durations do
   @doc false
   def timeline([{time, project} | rest]) do
     rest
-    |> timeline(time, time, project, %{})
-    |> Map.new(fn {project, timeline} -> {project, :lists.reverse(timeline)} end)
+    |> timeline(time, time, project, [])
+    |> :lists.reverse()
   end
 
   def timeline([]), do: %{}
@@ -148,20 +148,17 @@ defmodule W2.Durations do
       if project == prev_project do
         timeline(rest, start_time, time, project, acc)
       else
-        line = [start_time, time]
-        acc = Map.update(acc, prev_project, [line], &[line | &1])
+        acc = [[prev_project, start_time, time] | acc]
         timeline(rest, time, time, project, acc)
       end
     else
-      line = [start_time, prev_time]
-      acc = Map.update(acc, prev_project, [line], &[line | &1])
+      acc = [[prev_project, start_time, prev_time] | acc]
       timeline(rest, time, time, project, acc)
     end
   end
 
   defp timeline([], start_time, prev_time, prev_project, acc) do
-    line = [start_time, prev_time]
-    Map.update(acc, prev_project, [line], &[line | &1])
+    [[prev_project, start_time, prev_time] | acc]
   end
 
   @doc false
