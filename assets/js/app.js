@@ -1,5 +1,5 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
-import "phoenix_html";
+// import "phoenix_html";
 // Establish Phoenix Socket and LiveView configuration.
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
@@ -9,50 +9,10 @@ let csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
-import uPlot from "uplot";
-
-const BarChart = {
-  mounted() {
-    let data = [
-      [1546300800, 1546387200], // x-values (timestamps)
-      [35, 71], // y-values (series 1)
-      [90, 15], // y-values (series 2)
-    ];
-
-    let opts = {
-      title: "My Chart",
-      width: this.el.offsetWidth,
-      height: 200,
-      series: [
-        {},
-        {
-          // initial toggled state (optional)
-          show: true,
-
-          spanGaps: false,
-
-          // in-legend display
-          label: "RAM",
-          value: (self, rawValue) => "$" + rawValue.toFixed(2),
-
-          // series style
-          stroke: "red",
-          width: 1,
-          fill: "rgba(255, 0, 0, 0.3)",
-          dash: [10, 5],
-        },
-      ],
-    };
-
-    this.uplot = new uPlot(opts, data, this.el);
-  },
-};
+// import uPlot from "uplot";
 
 let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
-  hooks: {
-    BarChart,
-  },
 });
 
 // Show progress bar on live navigation and form submits
