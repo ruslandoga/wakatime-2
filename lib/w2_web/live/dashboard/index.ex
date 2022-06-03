@@ -6,6 +6,8 @@ defmodule W2Web.DashboardLive.Index do
   #               <%= DateTime.from_unix!(time) %> <%= Jason.encode!(totals) %>
   #             </span>
 
+  @days 4
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -15,26 +17,7 @@ defmodule W2Web.DashboardLive.Index do
           <.bar_chart from={@from} to={@to} buckets={@buckets} colors={@colors} />
         </div>
         <div class="px-4 pb-4 pt-2 md:h-1/2">
-          <div class="relative bg-red-800 h-full">
-          <%# timeline: <%= Jason.encode!(@timeline) %>
-          <%
-            to = DateTime.from_naive!(@to || NaiveDateTime.utc_now(), "Etc/UTC")
-            from = DateTime.from_naive!(@from || add_days(to, -4), "Etc/UTC")
-            to = DateTime.to_unix(to)
-            from = DateTime.to_unix(from)
-            interval = Durations.interval(from, to)
-            range = to - from + interval
-          %>
-
-          <%= for {project, durations} <- @timeline do %>
-            <div class="relative h-6">
-              <%= project %>
-              <%= for [duration_from, duration_to] <- durations do %>
-                <div class="absolute bg-red-200 h-full" style={"top:0;left:#{(duration_from-from)/range*100}%;width:#{(duration_to-duration_from)/range*100}%;"}></div>
-              <% end %>
-            </div>
-          <% end %>
-          </div>
+          <.timeline from={@from} to={@to} timeline={@timeline} colors={@colors} />
         </div>
       </div>
       <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
@@ -49,9 +32,33 @@ defmodule W2Web.DashboardLive.Index do
     """
   end
 
+  defp timeline(assigns) do
+    to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
+    from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
+    to = DateTime.to_unix(to)
+    from = DateTime.to_unix(from)
+    interval = Durations.interval(from, to)
+    range = to - from + interval
+    assigns = assign(assigns, range: range, from: from, to: to)
+
+    ~H"""
+    <div class="relative bg-red-800 h-full">
+      <%= for {project, durations} <- @timeline do %><div class="relative h-6">
+        <%= for [from, to] <- durations do %><.timeline_section x={Float.round((from - @from) / @range * 100, 2)} width={Float.round((to - from) / @range * 100, 2)} color={@colors[project]} /><% end %>
+      </div><% end %>
+    </div>
+    """
+  end
+
+  defp timeline_section(assigns) do
+    ~H"""
+    <div class={"absolute #{@color} h-full"} style={"top:0;left:#{@x}%;width:#{@width}%;"}></div>
+    """
+  end
+
   defp bar_chart(assigns) do
     to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(assigns.from || add_days(to, -4), "Etc/UTC")
+    from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
     to = DateTime.to_unix(to)
     from = DateTime.to_unix(from)
     interval = Durations.interval(from, to)
@@ -89,9 +96,7 @@ defmodule W2Web.DashboardLive.Index do
     assigns = assign(assigns, heights: heights)
 
     ~H"""
-    <%= for {y, height, color} <- @heights do %>
-      <div class={"absolute #{color}"} style={"bottom:#{y}%;left:#{@x}%;width:#{@width}%;height:#{height}%;"}></div>
-    <% end %>
+    <%= for {y, height, color} <- @heights do %><div class={"absolute #{color}"} style={"bottom:#{y}%;left:#{@x}%;width:#{@width}%;height:#{height}%;"}></div><% end %>
     """
   end
 
@@ -111,8 +116,8 @@ defmodule W2Web.DashboardLive.Index do
 
   defp table_row(assigns) do
     ~H"""
-    <tr>
-      <td class={"px-1 font-medium #{@color} hover:opacity-80 cursor-pointer text-ellipsis"}><%= @project %></td>
+    <tr class={@color}>
+      <td class={"px-1 font-medium hover:opacity-80 cursor-pointer text-ellipsis"}><%= @project %></td>
       <td class="font-medium"><%= format_time(@total) %></td>
     </tr>
     """
@@ -148,7 +153,7 @@ defmodule W2Web.DashboardLive.Index do
 
   defp fetch_data(socket) do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(socket.assigns.from || add_days(to, -4), "Etc/UTC")
+    from = DateTime.from_naive!(socket.assigns.from || add_days(to, -@days), "Etc/UTC")
 
     bucket_data = Durations.bucket_data(from, to)
     total_data = Durations.total_data(from, to)
