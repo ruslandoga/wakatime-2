@@ -93,9 +93,26 @@ defmodule W2.Durations do
     end
   end
 
+  defmacro durations_q() do
+    quote do
+      fragment("""
+      select sum(dchange) over (order by time) id, * from (
+        select case when time - lag(time, 1) over (order by time) > 300 then 1 else 0 end dchange, *
+        from heartbeats
+      )
+      """)
+    end
+  end
+
   def by_project_q(from, to) do
     {"durations", Duration}
     |> with_cte("durations", as: durations_q(^time(from), ^time(to)))
+    |> group_by([d], [d.project, d.id])
+  end
+
+  def by_project_q do
+    {"durations", Duration}
+    |> with_cte("durations", as: durations_q())
     |> group_by([d], [d.project, d.id])
   end
 
@@ -114,24 +131,23 @@ defmodule W2.Durations do
 
   """
   def list_by_project(from, to) do
-    durations =
-      by_project_q(from, to)
-      |> select([d], %{
-        project: d.project,
-        from: type(fragment("min(?)", d.time), UnixTime),
-        to: type(fragment("max(?)", d.time), UnixTime)
-      })
-      |> Repo.all()
+    by_project_q(from, to)
+    |> select([d], %{
+      project: d.project,
+      from: type(fragment("min(?)", d.time), UnixTime),
+      to: type(fragment("max(?)", d.time), UnixTime)
+    })
+    |> Repo.all()
+  end
 
-    seconds =
-      Enum.reduce(durations, 0, fn %{from: from, to: to}, acc ->
-        DateTime.diff(to, from) + acc
-      end)
-
-    {hours, rem} = {div(seconds, 3600), rem(seconds, 3600)}
-    {minutes, rem} = {div(rem, 60), rem(rem, 60)}
-
-    {durations, seconds, {hours, minutes, rem}}
+  def list_by_project() do
+    by_project_q()
+    |> select([d], %{
+      project: d.project,
+      from: type(fragment("min(?)", d.time), UnixTime),
+      to: type(fragment("max(?)", d.time), UnixTime)
+    })
+    |> Repo.all()
   end
 
   @doc false
