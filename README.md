@@ -1,19 +1,22 @@
-# W2
+### WakaTime with SQLite
 
-To start your Phoenix server:
+This repo contains a single container setup to run a bootleg of [WakaTime.](https://wakatime.com) It's composed of [SQLite,](https://www.sqlite.org) [Phoenix LiveView,](https://github.com/phoenixframework/phoenix_live_view) and [Litestream.](https://litestream.io) It can be deployed to a free instance on [fly.io.](https://fly.io)
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.setup`
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+#### How-to:
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+```
+> git clone https://github.com/ruslandoga/wakatime-1
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+> api_key=$(uuidgen | tr '[:upper:]' '[:lower:]')
 
-## Learn more
+> fly create
+> fly secrets set API_KEY=${api_key}
+> vim fly.toml ........ TODO
+> fly deploy
 
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+> cat > ~/.wakatime.cfg << EOM
+[settings]
+api_url = https://your-app.fly.dev
+api_key = ${api_key}
+EOM
+```
