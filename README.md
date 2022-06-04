@@ -4,7 +4,7 @@ This repo contains a single container setup to run a bootleg of [WakaTime.](http
 
 #### How-to:
 
-```
+```sh
 > git clone https://github.com/ruslandoga/wakatime-1
 
 > api_key=$(uuidgen | tr '[:upper:]' '[:lower:]')
