@@ -65,6 +65,7 @@ defmodule W2Web.DashboardLive.Index do
 
     assigns =
       assign(assigns,
+        day_starts: Durations.day_starts(from, to),
         from: from,
         range: range,
         width: Float.round(width * 100, 4),
@@ -73,6 +74,9 @@ defmodule W2Web.DashboardLive.Index do
 
     ~H"""
     <div class="relative h-full bg-red-900">
+      <%= for time <- @day_starts do %><.day_start_bar
+        x={Float.round((time - @from) / @range * 100, 4)}
+      /><% end %>
       <%= for [time, totals] <- @buckets do %><.bar
         totals={totals}
         x={Float.round((time - @from) / @range * 100, 4)}
@@ -81,6 +85,12 @@ defmodule W2Web.DashboardLive.Index do
         colors={@colors}
       /><% end %>
     </div>
+    """
+  end
+
+  defp day_start_bar(assigns) do
+    ~H"""
+    <div style={"left:#{@x}%;width:2px;"} class="top-0 bottom-0 absolute h-full bg-red-700/80"></div>
     """
   end
 

@@ -146,13 +146,28 @@ defmodule W2.DurationsTest do
     end
   end
 
-  defp unix(dt) do
-    DateTime.to_unix(dt)
+  describe "day_starts/2" do
+    test "returns all 0th hours between two timestamps" do
+      assert Durations.day_starts(
+               _from = unix(~U[2022-01-01 12:03:12Z]),
+               _to = unix(~U[2022-01-12 23:53:12Z])
+             ) == [
+               unix(~U[2022-01-02 00:00:00Z]),
+               unix(~U[2022-01-03 00:00:00Z]),
+               unix(~U[2022-01-04 00:00:00Z]),
+               unix(~U[2022-01-05 00:00:00Z]),
+               unix(~U[2022-01-06 00:00:00Z]),
+               unix(~U[2022-01-07 00:00:00Z]),
+               unix(~U[2022-01-08 00:00:00Z]),
+               unix(~U[2022-01-09 00:00:00Z]),
+               unix(~U[2022-01-10 00:00:00Z]),
+               unix(~U[2022-01-11 00:00:00Z]),
+               unix(~U[2022-01-12 00:00:00Z])
+             ]
+    end
   end
 
-  @doc false
-  def trace do
-    # Rexbug.start("W2.Durations :: return,stack")
-    Rexbug.start("W2.Durations", msgs: 10000)
+  defp unix(dt) do
+    DateTime.to_unix(dt)
   end
 end

@@ -44,6 +44,16 @@ defmodule W2.Durations do
     |> timeline()
   end
 
+  @h24 24 * 60 * 60
+
+  def day_starts(from, to) do
+    start = div(from, @h24) * @h24 + @h24
+    _day_starts(start, to)
+  end
+
+  defp _day_starts(date, to) when date < to, do: [date | _day_starts(date + @h24, to)]
+  defp _day_starts(_date, _to), do: []
+
   # the rest is eh
 
   defmodule UnixTime do
