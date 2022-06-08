@@ -74,6 +74,9 @@ defmodule Durations do
   end
 end
 
+# TODO
+# {:ok, duration_stmt} = Sqlite3.prepare(conn, "select duration(time) from heartbeats")
+
 Benchee.run(
   %{
     "window" => fn ->
@@ -87,6 +90,9 @@ Benchee.run(
     end,
     "multi_step" => fn ->
       Durations.multi_step(conn, stmt, nil, nil, [])
+    end,
+    "extension" => fn ->
+      W2.Repo.query!("select duration(time) from heartbeats", [])
     end
   },
   memory_time: 2
