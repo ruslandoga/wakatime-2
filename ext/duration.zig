@@ -1,5 +1,42 @@
+const std = @import("std");
 const c = @cImport(@cInclude("sqlite3ext.h"));
 var sqlite3_api: *c.sqlite3_api_routines = undefined;
+
+// TODO
+// Copied from https://github.com/ameerbrar/zig-generate_series/blob/main/src/generate_series.zig
+// Copied from raw_c_allocator.
+// Asserts allocations are within `@alignOf(std.c.max_align_t)` and directly calls
+// `malloc`/`free`. Does not attempt to utilize `malloc_usable_size`.
+// This allocator is safe to use as the backing allocator with
+// `ArenaAllocator` for example and is more optimal in such a case
+// than `c_allocator`.
+const Allocator = std.mem.Allocator;
+const assert = std.debug.assert;
+var sqlite_allocator = &allocator_state;
+var allocator_state = Allocator{ .allocFn = alloc, .resizeFn = resize };
+
+fn alloc(self: *Allocator, len: usize, ptr_align: u29, len_align: u29, ret_addr: usize) Allocator.Error![]u8 {
+    _ = self;
+    _ = len_align;
+    _ = ret_addr;
+    assert(ptr_align <= @alignOf(std.c.max_align_t));
+    const ptr = @ptrCast([*]u8, sqlite3_api.*.malloc64.?(len) orelse return error.OutOfMemory);
+    return ptr[0..len];
+}
+
+fn resize(self: *Allocator, buf: []u8, old_align: u29, new_len: usize, len_align: u29, ret_addr: usize) Allocator.Error!usize {
+    _ = self;
+    _ = old_align;
+    _ = ret_addr;
+    if (new_len == 0) {
+        sqlite3_api.*.free.?(buf.ptr);
+        return 0;
+    }
+    if (new_len <= buf.len) {
+        return std.mem.alignAllocLen(buf.len, new_len, len_align);
+    }
+    return error.OutOfMemory;
+}
 
 const TotalDurationState = struct {
     sum: f64,
