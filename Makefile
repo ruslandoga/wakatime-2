@@ -5,5 +5,5 @@ bench:
 
 # TODO -O ReleaseSafe
 compile-ext:
-	zig build-lib -O ReleaseSafe -fPIC -Iext -dynamic ext/duration.zig
+	zig build-lib -O ReleaseFast -fPIC -Iext -dynamic ext/duration.zig
 	mv libduration.* priv/
