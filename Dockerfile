@@ -42,6 +42,7 @@ WORKDIR /app
 RUN chown nobody:nobody /app
 USER nobody:nobody
 
+# TODO compile extension and copy it into this container
 COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/w2 ./
 COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
 COPY litestream.yml /etc/litestream.yml

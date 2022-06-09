@@ -11,15 +11,13 @@ config :sentry,
   environment_name: config_env(),
   included_environments: []
 
-# load extension
 config :w2, W2.Repo,
   after_connect: fn _conn ->
     [db_conn] = Process.get(:"$callers")
     db_connection_state = :sys.get_state(db_conn)
     conn = db_connection_state.mod_state.state
     :ok = Exqlite.Basic.enable_load_extension(conn)
-    # TODO
-    Exqlite.Basic.load_extension(conn, "/Users/q/Developer/zig/double/dist/scalar")
+    {:ok, _query, _result, _conn} = Exqlite.Basic.load_extension(conn, "priv/libduration")
     :ok = Exqlite.Basic.disable_load_extension(conn)
   end
 

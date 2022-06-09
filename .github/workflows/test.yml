@@ -27,6 +27,13 @@ jobs:
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
+      - name: Restore Zig cache
+        uses: actions/cache@v2
+        with:
+          path: ext/zig-cache
+          key: ${{ runner.os }}-zig-${{ hashFiles('ext/duration.zig') }}
+          restore-keys: ${{ runner.os }}-zig-
+
       - name: Install dependencies
         run: mix deps.get
 
@@ -35,6 +42,9 @@ jobs:
 
       - name: Compile (warnings as errors)
         run: MIX_ENV=test mix compile --warnings-as-errors
+
+      - name: Compile SQLite extension
+        run: make compile-ext
 
       - name: Run tests
         run: mix test
