@@ -16,4 +16,30 @@ defmodule W2Web.DashboardView do
       bars
     end)
   end
+
+  def prepare_chart_for_svg(from, interval, _width, height, buckets) do
+    from = div(from, interval)
+
+    Enum.flat_map(buckets, fn [time, totals] ->
+      x = div(time, interval) - from
+
+      {_, bars} =
+        Enum.reduce(totals, {interval, []}, fn {project, total}, {h, acc} ->
+          h = h - total
+
+          {h,
+           [
+             %{
+               x: x,
+               y: h / interval * height,
+               project: project,
+               height: total / interval * height
+             }
+             | acc
+           ]}
+        end)
+
+      bars
+    end)
+  end
 end
