@@ -28,3 +28,13 @@ liveSocket.connect();
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
+
+// Array.from(document.querySelectorAll("rect")).forEach((el) => {
+//   el.addEventListener("mouseenter", () => {
+//     el.style.fill = "red";
+//   });
+
+//   el.addEventListener("mouseleave", () => {
+//     el.style.fill = "black";
+//   });
+// });

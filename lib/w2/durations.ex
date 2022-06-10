@@ -4,6 +4,7 @@ defmodule W2.Durations do
 
   import Ecto.Query
 
+  # TODO from = div(from, 3600), to = div(to, 3600) + 1
   def bucket_data(from, to) do
     "heartbeats"
     |> select([h], {type(h.time, :integer), h.project})

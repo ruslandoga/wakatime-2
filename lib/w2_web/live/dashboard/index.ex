@@ -10,10 +10,10 @@ defmodule W2Web.DashboardLive.Index do
     <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
       <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
         <div class="px-4 pt-4 pb-2 h-64 md:flex-grow">
-          <.bar_chart from={@from} to={@to} buckets={@buckets} colors={@colors} />
+          <.svg_chart from={@from} to={@to} buckets={@buckets} />
         </div>
         <div class="px-4 pb-4 pt-2">
-          <.timeline from={@from} to={@to} timeline={@timeline} colors={@colors} />
+          <.timeline from={@from} to={@to} timeline={@timeline} />
         </div>
       </div>
       <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
@@ -21,11 +21,39 @@ defmodule W2Web.DashboardLive.Index do
           Total <%= format_time(@total) %>
         </div>
         <div class="px-4 pb-4">
-          <.table projects={@projects} colors={@colors} />
+          <.table projects={@projects} />
         </div>
       </div>
     </div>
     """
+  end
+
+  # TODO div(...)
+  defp svg_chart(assigns) do
+    to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
+    from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
+    to = DateTime.to_unix(to)
+    from = DateTime.to_unix(from)
+    from_div = div(from, 3600)
+    interval = Durations.interval(from, to)
+    bars = W2Web.DashboardView.prepare_chart_for_svg(from, interval, assigns.buckets)
+
+    assigns =
+      assign(assigns, interval: interval, bars: bars, day_starts: Durations.day_starts(from, to))
+
+    ~H"""
+    <svg viewbox={"0 0 169 #{interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
+    <%= for day_start <- @day_starts do %><.rect
+      x={div(day_start, interval) - from_div} y="0" width="1" height={interval} color="#b91c1c80"
+    /><% end %><%= for bar <- @bars do %><.rect
+      x={bar.x} y={bar.y} width="1" height={bar.height} color={color(bar.project)}
+    /><% end %>
+    </svg>
+    """
+  end
+
+  defp rect(assigns) do
+    ~H[<rect x={@x} y={@y} width={@width} height={@height} fill={@color} />]
   end
 
   defp timeline(assigns) do
@@ -34,83 +62,22 @@ defmodule W2Web.DashboardLive.Index do
     to = DateTime.to_unix(to)
     from = DateTime.to_unix(from)
     interval = Durations.interval(from, to)
-    range = to - from + interval
+    from = div(from, interval) * 3600
+    to = (div(to, interval) + 1) * 3600
+    range = to - from
     assigns = assign(assigns, range: range, from: from, to: to)
 
+    # TODO
     ~H"""
-    <div class="relative bg-red-800 h-6">
-      <%= for [project, from, to] <- @timeline do %><.timeline_section
-        x={Float.round((from - @from) / @range * 100, 2)}
-        width={Float.round((to - from) / @range * 100, 2)}
-        color={@colors[project]}
+    <svg viewbox="0 0 200 1" preserveAspectRatio="none" class="bg-red-800 h-6 w-full">
+      <%= for [project, from, to] <- @timeline do %><.rect
+        x={"#{Float.round((from - @from) / @range * 100, 2)}%"}
+        y="0"
+        width={"#{Float.round((to - from) / @range * 100, 2)}%"}
+        height="1"
+        color={color(project)}
       /><% end %>
-    </div>
-    """
-  end
-
-  defp timeline_section(assigns) do
-    ~H"""
-    <div class={"absolute #{@color} h-full"} style={"top:0;left:#{@x}%;width:#{@width}%;"}></div>
-    """
-  end
-
-  defp bar_chart(assigns) do
-    to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
-    to = DateTime.to_unix(to)
-    from = DateTime.to_unix(from)
-    interval = Durations.interval(from, to)
-    range = to - from + interval
-    width = interval / range
-
-    assigns =
-      assign(assigns,
-        day_starts: Durations.day_starts(from, to),
-        from: from,
-        range: range,
-        width: Float.round(width * 100, 4),
-        max_height: interval
-      )
-
-    ~H"""
-    <div class="relative h-full bg-red-900">
-      <%= for time <- @day_starts do %><.day_start_bar
-        x={Float.round((time - @from) / @range * 100, 4)}
-      /><% end %>
-      <%= for [time, totals] <- @buckets do %><.bar
-        totals={totals}
-        x={Float.round((time - @from) / @range * 100, 4)}
-        width={@width}
-        max_height={@max_height}
-        colors={@colors}
-      /><% end %>
-    </div>
-    """
-  end
-
-  defp day_start_bar(assigns) do
-    ~H"""
-    <div style={"left:#{@x}%;width:2px;"} class="top-0 bottom-0 absolute h-full bg-red-700/80"></div>
-    """
-  end
-
-  defp bar(assigns) do
-    %{colors: colors, max_height: max_height} = assigns
-
-    {_, heights} =
-      Enum.reduce(assigns.totals, {0, []}, fn {project, total}, {acc, heights} ->
-        {acc + total,
-         [
-           {Float.round(acc / max_height * 100, 2), Float.round(total / max_height * 100, 2),
-            colors[project]}
-           | heights
-         ]}
-      end)
-
-    assigns = assign(assigns, heights: heights)
-
-    ~H"""
-    <%= for {y, height, color} <- @heights do %><div class={"absolute #{color}"} style={"bottom:#{y}%;left:#{@x}%;width:#{@width}%;height:#{height}%;"}></div><% end %>
+    </svg>
     """
   end
 
@@ -124,7 +91,7 @@ defmodule W2Web.DashboardLive.Index do
       <tbody class="divide-y divide-red-700">
         <%= for {project, total} <- @projects do %><.table_row
           project={project}
-          color={@colors[project]}
+          color={color(project)}
           total={total}
         /><% end %>
       </tbody>
@@ -134,7 +101,7 @@ defmodule W2Web.DashboardLive.Index do
 
   defp table_row(assigns) do
     ~H"""
-    <tr class={@color}>
+    <tr style={"background-color:#{@color}"}>
       <td class={"px-1 leading-8 font-medium hover:opacity-50 cursor-pointer text-ellipsis"}><%= @project %></td>
       <td class="font-medium"><%= format_time(@total) %></td>
     </tr>
@@ -181,29 +148,28 @@ defmodule W2Web.DashboardLive.Index do
       # TODO
       |> Enum.sort_by(fn {_project, time} -> time end, :desc)
 
-    # TODO
-    project_colors = Map.new(projects_data, fn {project, _time} -> {project, color(project)} end)
     timeline_data = Durations.timeline_data(from, to)
 
     socket
     |> assign(total: total_data)
-    |> assign(projects: projects_data, colors: project_colors)
+    |> assign(projects: projects_data)
     |> assign(buckets: bucket_data)
     # |> push_event("bucket", %{"data" => bucket_data})
     # |> push_event("timeline", %{"data" => timeline_data})
     |> assign(timeline: timeline_data)
   end
 
+  # TODO
   @colors [
-    "bg-amber-400",
-    "bg-green-400",
-    "bg-cyan-500",
-    "bg-red-400",
-    "bg-blue-400",
-    "bg-yellow-400",
-    "bg-pink-500",
-    "bg-sky-600",
-    "bg-neutral-400"
+    "#fbbf24",
+    "#4ade80",
+    "#06b6d4",
+    "#f87171",
+    "#60a5fa",
+    "#facc15",
+    "#ec4899",
+    "#0284c7",
+    "#a3a3a3"
   ]
 
   @colors_count length(@colors)
