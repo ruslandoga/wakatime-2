@@ -19,6 +19,7 @@ defmodule W2Web.Router do
     pipe_through :browser
 
     live "/", DashboardLive.Index, :index
+    get "/barchart.svg", SVGController, :barchart
   end
 
   scope "/", W2Web do

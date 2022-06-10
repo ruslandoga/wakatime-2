@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg viewbox="0 0 169 <%= @interval %>" width="<%= @width %>" height="<%= @height %>" preserveAspectRatio="none" style="background-color:<%= @background %>;">
+<%= for day_start <- @day_starts do %>
+<rect x="<%= div(day_start, @interval) - @from_div %>" y="0" width="1" height="<%= @interval %>" fill="#b91c1c80"/>
+<% end %><%= for bar <- @bars do %>
+<rect x="<%= bar.x %>" y="<%= bar.y %>" width="1" height="<%= bar.height %>" fill="<%= color(bar.project) %>"/>
+<% end %>
+</svg>

@@ -39,12 +39,17 @@ defmodule W2Web.DashboardLive.Index do
     bars = W2Web.DashboardView.prepare_chart_for_svg(from, interval, assigns.buckets)
 
     assigns =
-      assign(assigns, interval: interval, bars: bars, day_starts: Durations.day_starts(from, to))
+      assign(assigns,
+        interval: interval,
+        bars: bars,
+        day_starts: Durations.day_starts(from, to),
+        from_div: from_div
+      )
 
     ~H"""
-    <svg viewbox={"0 0 169 #{interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
+    <svg viewbox={"0 0 169 #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
     <%= for day_start <- @day_starts do %><.rect
-      x={div(day_start, interval) - from_div} y="0" width="1" height={interval} color="#b91c1c80"
+      x={div(day_start, @interval) - @from_div} y="0" width="1" height={@interval} color="#b91c1c80"
     /><% end %><%= for bar <- @bars do %><.rect
       x={bar.x} y={bar.y} width="1" height={bar.height} color={color(bar.project)}
     /><% end %>
