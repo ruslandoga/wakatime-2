@@ -5,7 +5,7 @@ defmodule W2Web.SVGController do
   @days 7
 
   # TODO use params
-  def barchart(conn, _params) do
+  def barchart(conn, params) do
     # TODO div
     to = :os.system_time(:second)
     from = to - @days * 24 * 3600
@@ -27,7 +27,8 @@ defmodule W2Web.SVGController do
       bars: bars,
       from_div: from_div,
       interval: interval,
-      day_starts: Durations.day_starts(from, to)
+      day_starts: Durations.day_starts(from, to),
+      background: params["b"]
     )
   end
 
@@ -46,13 +47,4 @@ defmodule W2Web.SVGController do
   def test(conn, _params) do
     render(conn, :test)
   end
-
-  # defp maybe_int(value) do
-  #   if value do
-  #     case Integer.parse(value) do
-  #       {int, _} -> int
-  #       _ -> nil
-  #     end
-  #   end
-  # end
 end
