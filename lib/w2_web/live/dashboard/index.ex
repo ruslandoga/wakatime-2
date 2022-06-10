@@ -162,6 +162,7 @@ defmodule W2Web.DashboardLive.Index do
     # |> push_event("bucket", %{"data" => bucket_data})
     # |> push_event("timeline", %{"data" => timeline_data})
     |> assign(timeline: timeline_data)
+    |> assign(page_title: format_time(total_data))
   end
 
   # TODO
