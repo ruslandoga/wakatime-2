@@ -1,6 +1,7 @@
 defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
+  alias W2Web.DashboardView
 
   @days 7
 
@@ -9,11 +10,8 @@ defmodule W2Web.DashboardLive.Index do
     ~H"""
     <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
       <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
-        <div class="px-4 pt-4 pb-2 h-64 md:flex-grow">
-          <.svg_chart from={@from} to={@to} buckets={@buckets} />
-        </div>
-        <div class="px-4 pb-4 pt-2">
-          <.timeline from={@from} to={@to} timeline={@timeline} />
+        <div class="p-4 h-64 md:flex-grow">
+          <.bucket_timeline from={@from} to={@to} timeline={@timeline} />
         </div>
       </div>
       <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
@@ -29,19 +27,23 @@ defmodule W2Web.DashboardLive.Index do
   end
 
   # TODO div(...)
-  defp svg_chart(assigns) do
+  defp bucket_timeline(assigns) do
     to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
     from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
     to = DateTime.to_unix(to)
     from = DateTime.to_unix(from)
     from_div = div(from, 3600)
     interval = Durations.interval(from, to)
-    bars = W2Web.DashboardView.prepare_chart_for_svg(from, interval, assigns.buckets)
+
+    rects =
+      assigns.timeline
+      |> DashboardView.bucket_timeline(interval)
+      |> DashboardView.prepare_bucket_timeline_for_svg(from, interval)
 
     assigns =
       assign(assigns,
         interval: interval,
-        bars: bars,
+        rects: rects,
         day_starts: Durations.day_starts(from, to),
         from_div: from_div
       )
@@ -50,8 +52,8 @@ defmodule W2Web.DashboardLive.Index do
     <svg viewbox={"0 0 169 #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
     <%= for day_start <- @day_starts do %><.rect
       x={div(day_start, @interval) - @from_div} y="0" width="1" height={@interval} color="#b91c1c80"
-    /><% end %><%= for bar <- @bars do %><.rect
-      x={bar.x} y={bar.y} width="1" height={bar.height} color={color(bar.project)}
+    /><% end %><%= for rect <- @rects do %><.rect
+      x={rect.x} y={rect.y} width="1" height={rect.height} color={color(rect.project)}
     /><% end %>
     </svg>
     """
@@ -59,31 +61,6 @@ defmodule W2Web.DashboardLive.Index do
 
   defp rect(assigns) do
     ~H[<rect x={@x} y={@y} width={@width} height={@height} fill={@color} />]
-  end
-
-  defp timeline(assigns) do
-    to = DateTime.from_naive!(assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
-    from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
-    to = DateTime.to_unix(to)
-    from = DateTime.to_unix(from)
-    interval = Durations.interval(from, to)
-    from = div(from, interval) * 3600
-    to = (div(to, interval) + 1) * 3600
-    range = to - from
-    assigns = assign(assigns, range: range, from: from, to: to)
-
-    # TODO
-    ~H"""
-    <svg viewbox="0 0 200 1" preserveAspectRatio="none" class="bg-red-800 h-6 w-full">
-      <%= for [project, from, to] <- @timeline do %><.rect
-        x={"#{Float.round((from - @from) / @range * 100, 2)}%"}
-        y="0"
-        width={"#{Float.round((to - from) / @range * 100, 2)}%"}
-        height="1"
-        color={color(project)}
-      /><% end %>
-    </svg>
-    """
   end
 
   defp table(assigns) do
@@ -145,7 +122,6 @@ defmodule W2Web.DashboardLive.Index do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
     from = DateTime.from_naive!(socket.assigns.from || add_days(to, -@days), "Etc/UTC")
 
-    bucket_data = Durations.bucket_data(from, to)
     total_data = Durations.total_data(from, to)
 
     projects_data =
@@ -158,7 +134,6 @@ defmodule W2Web.DashboardLive.Index do
     socket
     |> assign(total: total_data)
     |> assign(projects: projects_data)
-    |> assign(buckets: bucket_data)
     # |> push_event("bucket", %{"data" => bucket_data})
     # |> push_event("timeline", %{"data" => timeline_data})
     |> assign(timeline: timeline_data)

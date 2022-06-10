@@ -17,6 +17,7 @@ defmodule W2Web.Router do
 
     live "/", DashboardLive.Index, :index
     get "/barchart.svg", SVGController, :barchart
+    get "/bucket-timeline.svg", SVGController, :bucket_timeline
     get "/test.svg", SVGController, :test_svg
     get "/svg-test", SVGController, :test
   end

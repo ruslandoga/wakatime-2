@@ -1,0 +1,6 @@
+<svg viewBox="0 0 169 3600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+<%= if @background do %><rect x="0" y="0" width="169" height="3600" fill="#<%= @background %>"/><% end %>
+<%= for day_start <- @day_starts do
+%><rect x="<%= div(day_start, @interval) - @from_div %>" y="0" width="1" height="<%= @interval %>" fill="#b91c1c30"/><% end %><%= for rect <- @rects do
+%><rect x="<%= rect.x %>" y="<%= rect.y %>" width="1" height="<%= rect.height %>" fill="<%= color(rect.project) %>"/><% end %>
+</svg>
