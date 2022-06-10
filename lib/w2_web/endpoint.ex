@@ -1,16 +1,7 @@
 defmodule W2Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :w2
 
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
-  @session_options [
-    store: :cookie,
-    key: "_w2_key",
-    signing_salt: "RfxmOFNn"
-  ]
-
-  socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
+  socket "/live", Phoenix.LiveView.Socket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -45,6 +36,5 @@ defmodule W2Web.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug Plug.Session, @session_options
   plug W2Web.Router
 end

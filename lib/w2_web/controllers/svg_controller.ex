@@ -9,7 +9,7 @@ defmodule W2Web.SVGController do
     # TODO div
     to = :os.system_time(:second)
     from = to - @days * 24 * 3600
-    buckets = Durations.bucket_data(from, to) |> IO.inspect()
+    buckets = Durations.bucket_data(from, to)
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 
