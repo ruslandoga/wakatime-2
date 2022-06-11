@@ -10,7 +10,7 @@ defmodule W2Web.SVGController do
     # TODO div
     to = :os.system_time(:second)
     from = to - @days * 24 * 3600
-    buckets = Durations.bucket_data(from, to)
+    buckets = Durations.fetch_bucket_data(from, to)
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 
@@ -36,7 +36,7 @@ defmodule W2Web.SVGController do
   def bucket_timeline(conn, params) do
     to = :os.system_time(:second)
     from = to - @days * 24 * 3600
-    timeline = Durations.timeline_data(from, to)
+    timeline = Durations.fetch_timeline(from, to)
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 

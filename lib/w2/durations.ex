@@ -1,52 +1,63 @@
 defmodule W2.Durations do
-  alias W2.Repo
-  # alias W2.Ingester.Heartbeat
+  @moduledoc """
+  Contains functions to turn discreet heartbeats
+  into continuous durations and other aggregations
+  """
 
+  alias W2.Repo
   import Ecto.Query
 
   # TODO from = div(from, 3600), to = div(to, 3600) + 1
-  def bucket_data(from, to) do
-    "heartbeats"
-    |> select([h], {type(h.time, :integer), h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> bucket_totals(interval(from, to))
+
+  @doc """
+  """
+  def fetch_dashboard_data(from, to) do
+    timeline = fetch_timeline(from, to)
+    project_totals = project_totals_from_timeline(timeline)
+
+    %{
+      timeline: timeline,
+      total: Enum.reduce(project_totals, 0, fn {_project, total}, acc -> acc + total end),
+      projects: project_totals
+    }
   end
 
-  def total_data(from, to) do
-    "heartbeats"
-    |> select([h], type(h.time, :integer))
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> total()
+  @doc false
+  def project_totals_from_timeline(timeline) do
+    project_totals_from_timeline(timeline, %{})
   end
 
-  def projects_data(from, to) do
-    "heartbeats"
-    |> select([h], {type(h.time, :integer), h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> project_totals()
+  defp project_totals_from_timeline([[project, from, to] | rest], acc) do
+    acc = Map.update(acc, project, to - from, fn prev -> prev + to - from end)
+    project_totals_from_timeline(rest, acc)
   end
 
-  def timeline_data(from, to) do
-    "heartbeats"
-    |> select([h], {type(h.time, :integer), h.project})
-    |> where([h], h.time > ^time(from))
-    |> where([h], h.time < ^time(to))
-    |> order_by([h], asc: h.time)
-    |> Repo.all()
-    |> timeline()
+  defp project_totals_from_timeline([], acc), do: acc
+
+  @doc """
+  """
+  def fetch_timeline(from, to) do
+    csv =
+      "heartbeats"
+      |> select([_], fragment("timeline_csv(time, project)"))
+      |> where([h], h.time > ^time(from))
+      |> where([h], h.time < ^time(to))
+      # TODO
+      |> where([h], not is_nil(h.project))
+      |> Repo.one!()
+
+    csv
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn row ->
+      [project, from, to] = String.split(row, ",")
+      [project, String.to_integer(from), String.to_integer(to)]
+    end)
   end
 
   @h24 24 * 60 * 60
 
+  @doc """
+  """
   def day_starts(from, to) do
     start = div(from, @h24) * @h24 + @h24
     _day_starts(start, to)
@@ -55,192 +66,11 @@ defmodule W2.Durations do
   defp _day_starts(date, to) when date < to, do: [date | _day_starts(date + @h24, to)]
   defp _day_starts(_date, _to), do: []
 
-  # the rest is eh
-
-  defmodule UnixTime do
-    use Ecto.Type
-
-    @impl true
-    def type, do: :any
-
-    @impl true
-    def cast(value) do
-      {:ok, value}
-    end
-
-    @impl true
-    def dump(value) when is_number(value) do
-      {:ok, value}
-    end
-
-    @impl true
-    def load(value) when is_float(value) do
-      DateTime.from_unix(round(value))
-    end
-  end
-
-  defmodule Duration do
-    use Ecto.Schema
-
-    schema "durations" do
-      field :time, UnixTime
-      field :project, :string
-    end
-  end
-
-  defmacro durations_q(from, to) do
-    quote do
-      fragment(
-        """
-        select sum(dchange) over (order by time) id, * from (
-          select case when time - lag(time, 1) over (order by time) > 300 then 1 else 0 end dchange, *
-          from heartbeats
-          where time > ? and time < ?
-        )
-        """,
-        unquote(from),
-        unquote(to)
-      )
-    end
-  end
-
-  defmacro durations_q() do
-    quote do
-      fragment("""
-      select sum(dchange) over (order by time) id, * from (
-        select case when time - lag(time, 1) over (order by time) > 300 then 1 else 0 end dchange, *
-        from heartbeats
-      )
-      """)
-    end
-  end
-
-  def by_project_q(from, to) do
-    {"durations", Duration}
-    |> with_cte("durations", as: durations_q(^time(from), ^time(to)))
-    |> group_by([d], [d.project, d.id])
-  end
-
-  def by_project_q do
-    {"durations", Duration}
-    |> with_cte("durations", as: durations_q())
-    |> group_by([d], [d.project, d.id])
-  end
-
-  @doc """
-  Lists durations by project.
-
-  Example:
-
-      list_by_project(_from = ~U[2022-05-30 13:20:00Z], _to = ~U[2022-05-30 15:41:45Z])
-      [
-        %{from: ~U[2022-05-30 13:20:33Z], project: "w2", to: ~U[2022-05-30 14:22:03Z]},
-        %{from: ~U[2022-05-30 14:27:31Z], project: "w2", to: ~U[2022-05-30 14:27:31Z]},
-        %{from: ~U[2022-05-30 14:36:07Z], project: "w2", to: ~U[2022-05-30 14:36:08Z]},
-        %{from: ~U[2022-05-30 14:58:31Z], project: "w2", to: ~U[2022-05-30 15:41:11Z]}
-      ]
-
-  """
-  def list_by_project(from, to) do
-    by_project_q(from, to)
-    |> select([d], %{
-      project: d.project,
-      from: type(fragment("min(?)", d.time), UnixTime),
-      to: type(fragment("max(?)", d.time), UnixTime)
-    })
-    |> Repo.all()
-  end
-
-  def list_by_project() do
-    by_project_q()
-    |> select([d], %{
-      project: d.project,
-      from: type(fragment("min(?)", d.time), UnixTime),
-      to: type(fragment("max(?)", d.time), UnixTime)
-    })
-    |> Repo.all()
-  end
-
-  @doc false
-  def timeline([{time, project} | rest]) do
-    rest
-    |> timeline(time, time, project, [])
-    |> :lists.reverse()
-  end
-
-  def timeline([]), do: %{}
-
-  defp timeline([{time, project} | rest], start_time, prev_time, prev_project, acc) do
-    if time - prev_time < 300 do
-      if project == prev_project do
-        timeline(rest, start_time, time, project, acc)
-      else
-        acc = [[prev_project, start_time, time] | acc]
-        timeline(rest, time, time, project, acc)
-      end
-    else
-      acc = [[prev_project, start_time, prev_time] | acc]
-      timeline(rest, time, time, project, acc)
-    end
-  end
-
-  defp timeline([], start_time, prev_time, prev_project, acc) do
-    [[prev_project, start_time, prev_time] | acc]
-  end
-
-  @doc false
-  def project_totals([{time, project} | rest]) do
-    project_totals(rest, time, time, project, %{})
-  end
-
-  def project_totals([]) do
-    %{}
-  end
-
-  defp project_totals([{time, project} | rest], start_time, prev_time, prev_project, acc) do
-    if time - prev_time < 300 do
-      if project == prev_project do
-        project_totals(rest, start_time, time, project, acc)
-      else
-        add = time - start_time
-        acc = Map.update(acc, prev_project, add, &(add + &1))
-        project_totals(rest, time, time, project, acc)
-      end
-    else
-      add = prev_time - start_time
-      acc = Map.update(acc, prev_project, add, &(add + &1))
-      project_totals(rest, time, time, project, acc)
-    end
-  end
-
-  defp project_totals([], start_time, prev_time, prev_project, acc) do
-    add = prev_time - start_time
-    Map.update(acc, prev_project, add, &(add + &1))
-  end
-
-  @doc false
-  def total([time | rest]) do
-    total(rest, time, 0)
-  end
-
-  def total([]), do: 0
-
-  defp total([time | heartbeats], prev_time, total) do
-    diff = time - prev_time
-
-    if diff > 300 do
-      total(heartbeats, time, total)
-    else
-      total(heartbeats, time, total + diff)
-    end
-  end
-
-  defp total([], _prev_time, total), do: total
-
   @hour_in_seconds 3600
   @day_in_seconds 24 * @hour_in_seconds
 
   @doc """
+  Computes appropriate interval for aggregations from datetime range.
 
       iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-08 00:00:00Z])
       3600
@@ -275,77 +105,67 @@ defmodule W2.Durations do
 
   @compile {:inline, bucket: 2}
   def bucket(time, interval) do
-    div(floor(time), interval)
+    div(time, interval)
   end
 
+  @doc """
+  """
+  def fetch_bucket_data(from, to) do
+    timeline = fetch_timeline(from, to)
+    interval = interval(from, to)
+
+    timeline
+    |> bucket_totals2(nil, interval, nil, [])
+    |> :lists.reverse()
+  end
+
+  # TODO
   @doc false
-  def bucket_totals([{time, project} | heartbeats], interval) do
-    bucket_totals(
-      heartbeats,
-      time,
-      # TODO _prev_time = nil?
-      _prev_time = time,
-      project,
-      _inner_acc = %{},
-      _outer_acc = [],
-      interval
-    )
-  end
+  def bucket_totals2([[project, from, to] | rest], prev_bucket, interval, inner_acc, outer_acc) do
+    cond do
+      prev_bucket == bucket(from, interval) and prev_bucket == bucket(to, interval) ->
+        inner_acc = Map.update(inner_acc, project, to - from, fn prev -> prev + to - from end)
+        bucket_totals2(rest, prev_bucket, interval, inner_acc, outer_acc)
 
-  def bucket_totals([] = heartbeats, _interval), do: heartbeats
+      prev_bucket == bucket(from, interval) ->
+        clamped_to = (prev_bucket + 1) * interval
 
-  defp bucket_totals(
-         [{time, project} | heartbeats],
-         start_time,
-         prev_time,
-         prev_project,
-         inner_acc,
-         outer_acc,
-         interval
-       ) do
-    same_project? = project == prev_project
-    same_duration? = time - prev_time < 300
-    same_bucket? = bucket(start_time, interval) == bucket(time, interval)
+        inner_acc =
+          Map.update(inner_acc, project, clamped_to - from, fn prev ->
+            prev + clamped_to - from
+          end)
 
-    if same_bucket? and same_project? and same_duration? do
-      bucket_totals(heartbeats, start_time, time, project, inner_acc, outer_acc, interval)
-    else
-      {end_time, next_start_time, prev_time} =
-        cond do
-          same_duration? and same_bucket? ->
-            {time, time, time}
-
-          same_duration? ->
-            {bucket(time, interval) * interval, bucket(time, interval) * interval, time}
-
-          true ->
-            {prev_time, time, time}
-        end
-
-      add = end_time - start_time
-      inner_acc = Map.update(inner_acc, prev_project, add, &(add + &1))
-
-      if same_bucket? do
-        bucket_totals(
-          heartbeats,
-          next_start_time,
-          prev_time,
-          project,
+        bucket_totals2(
+          [[project, clamped_to, to] | rest],
+          prev_bucket,
+          interval,
           inner_acc,
-          outer_acc,
-          interval
+          outer_acc
         )
-      else
-        outer_acc = [[bucket(start_time, interval) * interval, inner_acc] | outer_acc]
-        bucket_totals(heartbeats, next_start_time, prev_time, project, %{}, outer_acc, interval)
-      end
+
+      bucket(from, interval) == bucket(to, interval) ->
+        bucket = bucket(from, interval)
+
+        outer_acc =
+          if inner_acc, do: [[bucket * interval, inner_acc] | outer_acc], else: outer_acc
+
+        inner_acc = %{project => to - from}
+        bucket_totals2(rest, bucket, interval, inner_acc, outer_acc)
+
+      true ->
+        bucket = bucket(from, interval)
+        clamped_to = (bucket + 1) * interval
+
+        outer_acc =
+          if inner_acc, do: [[bucket * interval, inner_acc] | outer_acc], else: outer_acc
+
+        inner_acc = %{project => clamped_to - from}
+        bucket_totals2([[project, clamped_to, to] | rest], bucket, interval, inner_acc, outer_acc)
     end
   end
 
-  defp bucket_totals([], start_time, prev_time, prev_project, inner_acc, outer_acc, interval) do
-    add = prev_time - start_time
-    inner_acc = Map.update(inner_acc, prev_project, add, &(add + &1))
-    :lists.reverse([[bucket(start_time, interval) * interval, inner_acc] | outer_acc])
+  def bucket_totals2([], prev_bucket, interval, inner_acc, outer_acc) do
+    [[prev_bucket * interval, inner_acc] | outer_acc]
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)

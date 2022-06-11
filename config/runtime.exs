@@ -11,6 +11,17 @@ config :sentry,
   environment_name: config_env(),
   included_environments: []
 
+config :w2, W2.Repo,
+  after_connect: fn _conn ->
+    [db_conn] = Process.get(:"$callers")
+    db_connection_state = :sys.get_state(db_conn)
+    conn = db_connection_state.mod_state.state
+    :ok = Exqlite.Basic.enable_load_extension(conn)
+    path = Path.join(:code.priv_dir(:w2), "timeline.sqlite3ext")
+    {:ok, _query, _result, _conn} = Exqlite.Basic.load_extension(conn, path)
+    :ok = Exqlite.Basic.disable_load_extension(conn)
+  end
+
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
@@ -103,4 +114,9 @@ end
 
 if config_env() == :test do
   config :w2, api_key: "406fe41f-6d69-4183-a4cc-121e0c524c2b"
+end
+
+if config_env() == :bench do
+  db = System.get_env("DATABASE") || "w2_bench.db"
+  config :w2, W2.Repo, database: Path.expand("../" <> db, Path.dirname(__ENV__.file))
 end

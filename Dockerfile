@@ -23,6 +23,8 @@ RUN mix deps.compile
 # build project
 COPY priv priv
 COPY lib lib
+COPY c_src c_src
+COPY Makefile Makefile
 RUN mix sentry_recompile
 COPY config/runtime.exs config/
 

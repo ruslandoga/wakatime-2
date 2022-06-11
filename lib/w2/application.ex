@@ -10,6 +10,7 @@ defmodule W2.Application do
     children = [
       # Start the Ecto repository
       W2.Repo,
+      # TODO run migrations
       # Start the Telemetry supervisor
       W2Web.Telemetry,
       # Start the PubSub system
