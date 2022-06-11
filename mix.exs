@@ -7,7 +7,9 @@ defmodule W2.MixProject do
       version: "0.1.0",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:gettext] ++ Mix.compilers(),
+      compilers: [:elixir_make, :gettext] ++ Mix.compilers(),
+      make_targets: ["timeline"],
+      make_clean: ["clean"],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -53,7 +55,8 @@ defmodule W2.MixProject do
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
       {:sentry, "~> 8.0"},
-      {:finch, "~> 0.12.0"}
+      {:finch, "~> 0.12.0"},
+      {:elixir_make, "~> 0.6", runtime: false}
     ]
   end
 

@@ -122,22 +122,17 @@ defmodule W2Web.DashboardLive.Index do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
     from = DateTime.from_naive!(socket.assigns.from || add_days(to, -@days), "Etc/UTC")
 
-    total_data = Durations.total_data(from, to)
+    %{total: total, projects: projects, timeline: timeline} =
+      Durations.fetch_dashboard_data(from, to)
 
-    projects_data =
-      Durations.projects_data(from, to)
-      # TODO
-      |> Enum.sort_by(fn {_project, time} -> time end, :desc)
-
-    timeline_data = Durations.timeline_data(from, to)
+    # TODO
+    projects = Enum.sort_by(projects, fn {_project, time} -> time end, :desc)
 
     socket
-    |> assign(total: total_data)
-    |> assign(projects: projects_data)
-    # |> push_event("bucket", %{"data" => bucket_data})
-    # |> push_event("timeline", %{"data" => timeline_data})
-    |> assign(timeline: timeline_data)
-    |> assign(page_title: format_time(total_data))
+    |> assign(total: total)
+    |> assign(projects: projects)
+    |> assign(timeline: timeline)
+    |> assign(page_title: format_time(total))
   end
 
   # TODO
