@@ -39,3 +39,5 @@ npm-debug.log
 .DS_Store
 .elixir_ls
 .envrc
+dist/
+.vscode/
