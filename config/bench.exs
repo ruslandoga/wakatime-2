@@ -1,9 +1,7 @@
 import Config
 
 # Configure your database
-config :w2, W2.Repo,
-  database: Path.expand("../w2_bench.db", Path.dirname(__ENV__.file)),
-  pool_size: 5
+config :w2, W2.Repo, pool_size: 5
 
 # We don't run a server during bench. If one is required,
 # you can enable the server option below.

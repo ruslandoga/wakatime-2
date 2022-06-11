@@ -3,143 +3,68 @@ defmodule W2.DurationsTest do
   alias W2.Durations
   doctest Durations, import: true
 
-  describe "bucket_totals/2" do
+  describe "fetch_dashboard_data/2" do
     test "project switch" do
-      assert Durations.bucket_totals(
-               [
-                 {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-                 {unix(~U[2022-01-01 12:04:13Z]), "w1"},
-                 {unix(~U[2022-01-01 12:04:18Z]), "w1"},
-                 {unix(~U[2022-01-01 12:04:19Z]), "w2"},
-                 {unix(~U[2022-01-01 12:05:19Z]), "w2"}
-               ],
-               _interval = 3600
-             ) == [
-               [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 7, "w2" => 60}]
-             ]
-    end
+      insert_heartbeats([
+        %{time: unix(~U[2022-01-01 12:04:12Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 12:04:13Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 12:04:18Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 12:04:19Z]), project: "w2"},
+        %{time: unix(~U[2022-01-01 12:05:19Z]), project: "w2"}
+      ])
 
-    test "hour switch" do
-      assert Durations.bucket_totals(
-               [
-                 {unix(~U[2022-01-01 12:58:12Z]), "w1"},
-                 {unix(~U[2022-01-01 12:59:13Z]), "w1"},
-                 {unix(~U[2022-01-01 13:00:18Z]), "w1"}
-               ],
-               _interval = 3600
-             ) == [
-               [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 108}],
-               [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 18}]
-             ]
-    end
+      from = ~U[2022-01-01 12:04:00Z]
+      to = ~U[2022-01-01 12:06:00Z]
 
-    test "duration break" do
-      assert Durations.bucket_totals(
-               [
-                 {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-                 {unix(~U[2022-01-01 12:05:12Z]), "w1"},
-                 {unix(~U[2022-01-01 13:04:18Z]), "w1"},
-                 {unix(~U[2022-01-01 13:04:19Z]), "w1"},
-                 {unix(~U[2022-01-01 13:05:19Z]), "w1"}
-               ],
-               _interval = 3600
-             ) == [
-               [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 60}],
-               [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 61}]
-             ]
-    end
-  end
+      %{total: total, projects: projects, timeline: timeline} =
+        Durations.fetch_dashboard_data(from, to)
 
-  describe "total/1" do
-    test "project switch" do
-      assert Durations.total([
-               unix(~U[2022-01-01 12:04:12Z]),
-               unix(~U[2022-01-01 12:04:13Z]),
-               unix(~U[2022-01-01 12:04:18Z]),
-               unix(~U[2022-01-01 12:04:19Z]),
-               unix(~U[2022-01-01 12:05:19Z])
-             ]) == 67
-    end
+      assert total == 67
+      assert projects == %{"w1" => 7, "w2" => 60}
 
-    test "hour switch" do
-      assert Durations.total([
-               unix(~U[2022-01-01 12:58:12Z]),
-               unix(~U[2022-01-01 12:59:13Z]),
-               unix(~U[2022-01-01 13:00:18Z])
-             ]) == 126
-    end
-
-    test "duration break" do
-      assert Durations.total([
-               unix(~U[2022-01-01 12:04:12Z]),
-               unix(~U[2022-01-01 12:05:12Z]),
-               unix(~U[2022-01-01 13:04:18Z]),
-               unix(~U[2022-01-01 13:04:19Z]),
-               unix(~U[2022-01-01 13:05:19Z])
-             ]) == 121
-    end
-  end
-
-  describe "project_totals/1" do
-    test "project switch" do
-      assert Durations.project_totals([
-               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:13Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:18Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:19Z]), "w2"},
-               {unix(~U[2022-01-01 12:05:19Z]), "w2"}
-             ]) == %{"w1" => 7, "w2" => 60}
-    end
-
-    test "hour switch" do
-      assert Durations.project_totals([
-               {unix(~U[2022-01-01 12:58:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:59:13Z]), "w1"},
-               {unix(~U[2022-01-01 13:00:18Z]), "w1"}
-             ]) == %{"w1" => 126}
-    end
-
-    test "duration break" do
-      assert Durations.project_totals([
-               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:05:12Z]), "w1"},
-               {unix(~U[2022-01-01 13:04:18Z]), "w1"},
-               {unix(~U[2022-01-01 13:04:19Z]), "w1"},
-               {unix(~U[2022-01-01 13:05:19Z]), "w1"}
-             ]) == %{"w1" => 121}
-    end
-  end
-
-  describe "timeline/1" do
-    test "project switch" do
-      assert Durations.timeline([
-               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:13Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:18Z]), "w1"},
-               {unix(~U[2022-01-01 12:04:19Z]), "w2"},
-               {unix(~U[2022-01-01 12:05:19Z]), "w2"}
-             ]) == [
+      assert timeline == [
                ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])],
                ["w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]
              ]
     end
 
     test "hour switch" do
-      assert Durations.timeline([
-               {unix(~U[2022-01-01 12:58:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:59:13Z]), "w1"},
-               {unix(~U[2022-01-01 13:00:18Z]), "w1"}
-             ]) == [["w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])]]
+      insert_heartbeats([
+        %{time: unix(~U[2022-01-01 12:58:12Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 12:59:13Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 13:00:18Z]), project: "w1"}
+      ])
+
+      from = ~U[2022-01-01 12:50:00Z]
+      to = ~U[2022-01-01 13:10:00Z]
+
+      %{total: total, projects: projects, timeline: timeline} =
+        Durations.fetch_dashboard_data(from, to)
+
+      assert total == 126
+      assert projects == %{"w1" => 126}
+      assert timeline == [["w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])]]
     end
 
     test "duration break" do
-      assert Durations.timeline([
-               {unix(~U[2022-01-01 12:04:12Z]), "w1"},
-               {unix(~U[2022-01-01 12:05:12Z]), "w1"},
-               {unix(~U[2022-01-01 13:04:18Z]), "w1"},
-               {unix(~U[2022-01-01 13:04:19Z]), "w1"},
-               {unix(~U[2022-01-01 13:05:19Z]), "w1"}
-             ]) == [
+      insert_heartbeats([
+        %{time: unix(~U[2022-01-01 12:04:12Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 12:05:12Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 13:04:18Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 13:04:19Z]), project: "w1"},
+        %{time: unix(~U[2022-01-01 13:05:19Z]), project: "w1"}
+      ])
+
+      from = ~U[2022-01-01 12:00:00Z]
+      to = ~U[2022-01-01 14:00:00Z]
+
+      %{total: total, projects: projects, timeline: timeline} =
+        Durations.fetch_dashboard_data(from, to)
+
+      assert total == 121
+      assert projects == %{"w1" => 121}
+
+      assert timeline == [
                ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
                ["w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
              ]
@@ -169,5 +94,32 @@ defmodule W2.DurationsTest do
 
   defp unix(dt) do
     DateTime.to_unix(dt)
+  end
+
+  @default_heartbeat %{
+    branch: "add-ingester",
+    category: "coding",
+    cursorpos: 1,
+    dependencies: nil,
+    editor: "vscode/1.68.0-insider",
+    entity: "/Users/q/Developer/copycat/w1/lib/w1/endpoint.ex",
+    is_write: 1,
+    language: "Elixir",
+    lineno: 31,
+    lines: 64,
+    operating_system: "darwin-21.4.0-arm64",
+    project: "w1",
+    # TODO
+    time: 1_653_576_798.5958169,
+    type: "file"
+  }
+
+  defp insert_heartbeats(heartbeats) do
+    heartbeats =
+      Enum.map(heartbeats, fn heartbeat ->
+        Map.merge(@default_heartbeat, heartbeat)
+      end)
+
+    Repo.insert_all("heartbeats", heartbeats)
   end
 end
