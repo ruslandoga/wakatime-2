@@ -41,3 +41,4 @@ npm-debug.log
 .envrc
 priv/*.sqlite3ext*
 .vscode/
+data

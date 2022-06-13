@@ -1,3 +1,4 @@
+FROM litestream/litestream:0.3.8 AS litestream
 FROM hexpm/elixir:1.13.4-erlang-25.0-alpine-3.15.4 as build
 
 # install build dependencies
@@ -44,7 +45,9 @@ RUN chown nobody:nobody /app
 USER nobody:nobody
 
 COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/w2 ./
+COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
+COPY litestream.yml /etc/litestream.yml
 
 ENV HOME=/app
 
-CMD /app/bin/w2 start
+CMD litestream restore -if-db-not-exists -if-replica-exists $DATABASE_PATH && litestream replicate -exec "/app/bin/w2 start"

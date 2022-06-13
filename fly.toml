@@ -5,12 +5,13 @@ kill_timeout = 5
 processes = []
 
 [build]
-  image = "ghcr.io/ruslandoga/wakatime-2:master"
+  image = "ghcr.io/ruslandoga/wakatime-2:5f258ee13e3e882dcf8d82de3cddbad9eb4efe99"
 
 [env]
   DATABASE_PATH = "/data/w2.db"
   PHX_HOST = "stats.copycat.fun"
   PHX_SERVER = true
+  # POOL_SIZE = 1
 
 [experimental]
   allowed_public_ports = []
