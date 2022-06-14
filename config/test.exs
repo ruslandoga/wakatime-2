@@ -17,9 +17,6 @@ config :w2, W2Web.Endpoint,
   secret_key_base: "GfhL5S5PjM8RncNyv3rC/8ohyBlfyiy9pqxBDG/8XxJlIxNQ88MOZmzDjZOSrpwo",
   server: false
 
-# In test we don't send emails.
-config :w2, W2.Mailer, adapter: Swoosh.Adapters.Test
-
 # Print only warnings and errors during test
 config :logger, level: :warn
 
