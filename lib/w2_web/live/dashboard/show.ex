@@ -11,7 +11,7 @@ defmodule W2Web.DashboardLive.Show do
     <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
       <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
         <div class="p-4 h-64 md:flex-grow">
-          <.bucket_timeline from={@from} to={@to} timeline={@timeline} />
+          <div>bucket timeline</div>
         </div>
       </div>
       <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
@@ -19,7 +19,7 @@ defmodule W2Web.DashboardLive.Show do
           Total <%= format_time(@total) %>
         </div>
         <div class="px-4 pb-4">
-          <.table projects={@projects} />
+          <div>table of files, branches?</div>
         </div>
       </div>
     </div>

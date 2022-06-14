@@ -22,6 +22,19 @@ defmodule W2.Durations do
     }
   end
 
+  def fetch_project_data(project, from, to) do
+    timeline = fetch_project_timeline(project, from, to)
+    branch_totals = branch_totals_from_timeline(timeline)
+    file_totals = file_totals_from_timeline(timeline)
+
+    %{
+      timeline: timeline,
+      total: Enum.reduce(project_totals, 0, fn {_project, total}, acc -> acc + total end),
+      branch_totals: project_totals,
+      file_totals: file_totals
+    }
+  end
+
   @doc false
   def project_totals_from_timeline(timeline) do
     project_totals_from_timeline(timeline, %{})
