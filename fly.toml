@@ -11,6 +11,7 @@ processes = []
   DATABASE_PATH = "/data/w2.db"
   PHX_HOST = "stats.copycat.fun"
   PHX_SERVER = true
+  POOL_SIZE = 20
 
 [experimental]
   allowed_public_ports = []
