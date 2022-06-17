@@ -15,8 +15,15 @@ defmodule W2Web.DashboardLive.Index do
         </div>
       </div>
       <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
-        <div class="p-4 font-semibold ">
-          Total <%= format_time(@total) %>
+        <form class="p-4 inline-block" phx-change="date-range" phx-submit="date-range">
+          <input type="date" id="from-date" name="from_date" value={@from_date} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
+          <input type="time" id="from-time" name="from_time" value={@from_time} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
+          --
+          <input type="date" id="to-date" name="to_date" value={@to_date} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
+          <input type="time" id="to-time" name="to_time" value={@to_time} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
+        </form>
+        <div class="px-4 pb-4 font-semibold ">
+          <span>Total <%= format_time(@total) %></span>
         </div>
         <div class="px-4 pb-4">
           <.table projects={@projects} />
@@ -32,8 +39,8 @@ defmodule W2Web.DashboardLive.Index do
     from = DateTime.from_naive!(assigns.from || add_days(to, -@days), "Etc/UTC")
     to = DateTime.to_unix(to)
     from = DateTime.to_unix(from)
-    from_div = div(from, 3600)
     interval = Durations.interval(from, to)
+    from_div = div(from, interval)
 
     rects =
       assigns.timeline
@@ -45,11 +52,12 @@ defmodule W2Web.DashboardLive.Index do
         interval: interval,
         rects: rects,
         day_starts: Durations.day_starts(from, to),
-        from_div: from_div
+        from_div: from_div,
+        h_count: div(to, interval) - div(from, interval) + 1
       )
 
     ~H"""
-    <svg viewbox={"0 0 169 #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
+    <svg viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
     <%= for day_start <- @day_starts do %><.rect
       x={div(day_start, @interval) - @from_div} y="0" width="1" height={@interval} color="#b91c1c80"
     /><% end %><%= for rect <- @rects do %><.rect
@@ -96,21 +104,50 @@ defmodule W2Web.DashboardLive.Index do
       Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
     end
 
-    {:ok, assign(socket, from: nil, to: nil)}
+    {:ok, reset_date_range(socket)}
   end
 
   @impl true
   def handle_params(%{"from" => from, "to" => to}, _uri, socket) do
-    with {:ok, from} <- NaiveDateTime.from_iso8601(from),
-         {:ok, to} <- NaiveDateTime.from_iso8601(to) do
-      {:noreply, socket |> assign(from: from, to: to) |> fetch_data()}
+    with {:ok, from} <- parse_from(from), {:ok, to} <- parse_to(to) do
+      {:noreply, socket |> set_date_range(from, to) |> fetch_data()}
     else
-      _ -> {:noreply, push_patch(socket, "/")}
+      _ -> {:noreply, push_patch(socket, to: "/", replace: true)}
     end
   end
 
   def handle_params(_params, _uri, socket) do
-    {:noreply, socket |> assign(from: nil, to: nil) |> fetch_data()}
+    {:noreply, socket |> reset_date_range() |> fetch_data()}
+  end
+
+  @impl true
+  def handle_event("date-range", params, socket) do
+    # TODO validate
+    %{
+      "from_date" => from_date,
+      "to_date" => to_date,
+      "from_time" => from_time,
+      "to_time" => to_time
+    } = params
+
+    from = parse_date_time(from_date, from_time)
+    to = parse_date_time(to_date, to_time)
+
+    path =
+      Routes.dashboard_index_path(socket, :index,
+        from: NaiveDateTime.to_iso8601(from),
+        to: NaiveDateTime.to_iso8601(to)
+      )
+
+    {:noreply, push_patch(socket, to: path, replace: true)}
+  end
+
+  defp parse_date_time(date, time) do
+    case {Date.from_iso8601(date), Time.from_iso8601(time)} do
+      {{:ok, date}, {:ok, time}} -> NaiveDateTime.new!(date, time)
+      {{:ok, date}, _} -> NaiveDateTime.new!(date, Time.new!(0, 0, 0))
+      _ -> nil
+    end
   end
 
   @impl true
@@ -118,6 +155,7 @@ defmodule W2Web.DashboardLive.Index do
     {:noreply, fetch_data(socket)}
   end
 
+  # TODO refresh from/to
   defp fetch_data(socket) do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
     from = DateTime.from_naive!(socket.assigns.from || add_days(to, -@days), "Etc/UTC")
@@ -133,6 +171,31 @@ defmodule W2Web.DashboardLive.Index do
     |> assign(projects: projects)
     |> assign(timeline: timeline)
     |> assign(page_title: format_time(total))
+  end
+
+  defp reset_date_range(socket) do
+    to = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+    from = add_days(to, -@days)
+    set_date_range(socket, from, to)
+  end
+
+  defp set_date_range(socket, from, to) do
+    assign(socket,
+      from: from,
+      to: to,
+      from_date: NaiveDateTime.to_date(from),
+      from_time: NaiveDateTime.to_time(from),
+      to_date: NaiveDateTime.to_date(to),
+      to_time: NaiveDateTime.to_time(to)
+    )
+  end
+
+  defp parse_from(value) do
+    NaiveDateTime.from_iso8601(value)
+  end
+
+  defp parse_to(value) do
+    NaiveDateTime.from_iso8601(value)
   end
 
   # TODO
