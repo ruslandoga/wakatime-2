@@ -7,10 +7,12 @@ defmodule W2.Application do
 
   @impl true
   def start(_type, _args) do
+    repo_config = Application.fetch_env!(:w2, W2.Repo)
+
     children = [
       # Start the Ecto repository
       W2.Repo,
-      # TODO run migrations
+      {W2.Release.Migrator, migrate: repo_config[:migrate]},
       # Start the Telemetry supervisor
       W2Web.Telemetry,
       # Start the PubSub system
