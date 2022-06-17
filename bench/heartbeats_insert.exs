@@ -26,7 +26,9 @@ end
 Benchee.run(
   %{
     # "control" => fn -> Dummy.heartbeats() end,
-    "insert_heartbeats" => fn -> W2.Ingester.insert_heartbeats(Dummy.heartbeats()) end
+    "insert_heartbeats" => fn ->
+      W2.Ingester.insert_heartbeats(Dummy.heartbeats(), _machine_name = "mac3.local")
+    end
   },
   memory_time: 2
 )

@@ -47,6 +47,7 @@ defmodule W2Web.HeartbeatControllerTest do
       conn =
         conn
         |> put_req_header("authorization", "Basic #{Base.encode64(W2.api_key(), padding: false)}")
+        |> put_req_header("x-machine-name", "mac3.local")
         |> post("/heartbeats", @payload)
 
       assert json_response(conn, 201) == %{"responses" => [[nil, 201]]}

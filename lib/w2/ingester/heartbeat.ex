@@ -19,5 +19,6 @@ defmodule W2.Ingester.Heartbeat do
     field :type, :string
     field :operating_system, :string
     field :editor, :string
+    field :machine_name, :string
   end
 end

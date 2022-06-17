@@ -5,7 +5,8 @@ defmodule W2Web.HeartbeatController do
   def create(conn, params) do
     %{"_json" => heartbeats} = params
 
-    _ = W2.Ingester.insert_heartbeats(heartbeats)
+    [machine_name] = get_req_header(conn, "x-machine-name")
+    _ = W2.Ingester.insert_heartbeats(heartbeats, machine_name)
 
     conn
     |> put_status(201)
