@@ -4,7 +4,7 @@ defmodule W2.Ingester do
 
   def insert_heartbeats(heartbeats, machine_name) do
     result = Repo.insert_all(Heartbeat, cast_heartbeats(heartbeats, machine_name))
-    Phoenix.PubSub.broadcast!(W2.PubSub, "heartbeats", {W2.Ingester, :heartbeat})
+    # Phoenix.PubSub.broadcast!(W2.PubSub, "heartbeats", {W2.Ingester, :heartbeat})
     result
   end
 

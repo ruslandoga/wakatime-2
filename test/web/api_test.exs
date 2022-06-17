@@ -1,8 +1,8 @@
-defmodule W2Web.APIControllerTest do
-  use W2Web.ConnCase
+defmodule W2.APITest do
+  use W2.ConnCase
 
   describe "GET /data" do
-    test "with range filter", %{conn: conn} do
+    test "with range filter" do
       insert_heartbeats([
         %{time: unix(~U[2022-01-01 12:04:12Z]), project: "w1"},
         %{time: unix(~U[2022-01-01 12:04:13Z]), project: "w1"},
@@ -12,9 +12,10 @@ defmodule W2Web.APIControllerTest do
       ])
 
       conn =
-        conn
+        conn(:get, "/data?from=2022-01-01T12:04:00&to=2022-01-01T12:06:00")
+        # TODO
         |> put_req_header("accept", "application/json")
-        |> get("/data?from=2022-01-01T12:04:00&to=2022-01-01T12:06:00")
+        |> dispatch()
 
       assert json_response(conn, 200) == %{
                "from" => "2022-01-01T12:04:00",

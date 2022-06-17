@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title><%= assigns[:page_title] || "wako" %></title>
+    <link rel="stylesheet" href="/assets/app.css"/>
+  </head>
+  <body>
+    <main>
+      <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
+        <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
+          <div class="p-4 h-64 md:flex-grow">
+            <svg viewbox="0 0 <%= @h_count %> <%= @interval %>" preserveAspectRatio="none" class="h-full w-full bg-red-900">
+            <%= for day_start <- assigns.day_starts do %>
+              <rect x="<%= div(day_start, assigns.interval) - assigns.from_div %>" y="0" width="1" height="<%= assigns.interval %>" fill="#b91c1c80"/>
+            <% end %><%= for %{x: x, y: y, height: h, project: p} <- assigns.rects do %>
+              <rect x="<%= x %>" y="<%= y %>" width="1" height="<%= h %>" fill="<%= color(p) %>"/>
+            <% end %>
+            </svg>
+          </div>
+        </div>
+        <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
+          <form class="p-4 inline-block" action="/" method="get" >
+            <input type="date" name="from" value="<%= NaiveDateTime.to_date(assigns.from) %>" class="px-1 bg-pink-200 text-blue-600"/>
+            --
+            <input type="date" name="to" value="<%= NaiveDateTime.to_date(assigns.to) %>" class="px-1 bg-pink-200 text-blue-600"/>
+            <button type="submit" class="px-1 bg-pink-200 text-blue-600">Filter</button>
+          </form>
+          <div class="px-4 pb-4 font-semibold">
+            <span>Total <%= format_time(assigns.total) %></span>
+          </div>
+          <div class="px-4 pb-4">
+            <table class="border w-full border-red-700">
+              <thead class="border border-red-700">
+                <th class="px-1 text-left">project</th>
+                <th class="px-1 text-left">time</th>
+              </thead>
+              <tbody class="divide-y divide-red-700">
+                <%= for {project, total} <- assigns.projects do %>
+                <tr style="background-color:<%= color(project) %>">
+                  <td class="px-1 leading-8 font-medium hover:opacity-50 cursor-pointer text-ellipsis"><%= project %></td>
+                  <td class="font-medium"><%= format_time(total) %></td>
+                </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

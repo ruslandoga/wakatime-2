@@ -1,6 +1,6 @@
 defmodule Dev do
-  alias W2.Repo
-  import Ecto.Query
+  # alias W2.Repo
+  # import Ecto.Query
   alias Exqlite.Sqlite3
 
   # Repo.transaction(fn ->
