@@ -25,7 +25,8 @@ defmodule W2.IngesterTest do
       }
     ]
 
-    assert {1, nil} == Ingester.insert_heartbeats(heartbeats)
+    machine_name = "mac3.local"
+    assert {1, nil} == Ingester.insert_heartbeats(heartbeats, machine_name)
 
     assert fields(Repo.all(Heartbeat)) ==
              fields([
@@ -44,7 +45,8 @@ defmodule W2.IngesterTest do
                  project: "w1",
                  # TODO
                  time: 1_653_576_798.5958169,
-                 type: "file"
+                 type: "file",
+                 machine_name: "mac3.local"
                }
              ])
   end
