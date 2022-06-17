@@ -170,6 +170,10 @@ defmodule W2.Durations do
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
+
+  defp time(%NaiveDateTime{} = dt),
+    do: dt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+
   defp time(unix) when is_integer(unix) or is_float(unix), do: unix
   defp time(%Date{} = date), do: time(DateTime.new!(date, Time.new!(0, 0, 0)))
 end

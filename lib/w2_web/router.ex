@@ -9,6 +9,9 @@ defmodule W2Web.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :auth do
     plug W2Web.Plugs.Auth
   end
 
@@ -23,12 +26,18 @@ defmodule W2Web.Router do
   end
 
   scope "/", W2Web do
-    pipe_through :api
+    pipe_through [:api, :auth]
 
     post "/heartbeats", HeartbeatController, :create
     post "/heartbeats/v1/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/plugins/errors", HeartbeatController, :ignore
+  end
+
+  scope "/", W2Web do
+    pipe_through :api
+    # TODO
+    get "/data", APIController, :data
   end
 
   # Enables LiveDashboard only for development
