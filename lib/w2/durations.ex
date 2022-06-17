@@ -67,7 +67,7 @@ defmodule W2.Durations do
   defp _day_starts(_date, _to), do: []
 
   @hour_in_seconds 3600
-  @day_in_seconds 24 * @hour_in_seconds
+  # @day_in_seconds 24 * @hour_in_seconds
 
   @doc """
   Computes appropriate interval for aggregations from datetime range.
@@ -82,25 +82,26 @@ defmodule W2.Durations do
       3600
 
       iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-01 23:00:00Z])
-      1800
+      3600
 
       iex> interval(~U[2022-01-01 00:00:00Z], ~U[2022-01-01 04:00:00Z])
-      600
+      3600
 
   """
-  def interval(from, to) do
-    diff = time(to) - time(from)
+  def interval(_from, _to) do
+    # diff = time(to) - time(from)
 
-    cond do
-      # TODO years, months, weeks
-      diff > 7 * @day_in_seconds -> @day_in_seconds
-      diff > @day_in_seconds -> @hour_in_seconds
-      diff > 12 * @hour_in_seconds -> 30 * 60
-      diff > 6 * @hour_in_seconds -> 15 * 60
-      diff > 3 * @hour_in_seconds -> 10 * 60
-      diff > 1800 -> 60
-      true -> 15
-    end
+    # cond do
+    #   # TODO years, months, weeks
+    #   diff > 7 * @day_in_seconds -> @day_in_seconds
+    #   diff > @day_in_seconds -> @hour_in_seconds
+    #   diff > 12 * @hour_in_seconds -> 30 * 60
+    #   diff > 6 * @hour_in_seconds -> 15 * 60
+    #   diff > 3 * @hour_in_seconds -> 10 * 60
+    #   diff > 1800 -> 60
+    #   true -> 15
+    # end
+    @hour_in_seconds
   end
 
   @compile {:inline, bucket: 2}
