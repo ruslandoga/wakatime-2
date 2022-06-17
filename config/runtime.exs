@@ -59,7 +59,8 @@ if config_env() == :prod do
     wal_auto_check_point: 0,
     # https://litestream.io/tips/#busy-timeout
     busy_timeout: 5000,
-    cache_size: -2000
+    cache_size: -2000,
+    migrate: true
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
