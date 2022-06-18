@@ -25,4 +25,14 @@ defmodule W2.Release do
     Application.load(@app)
     Application.fetch_env!(@app, :ecto_repos)
   end
+
+  def load_timeline_extension do
+    [db_conn] = Process.get(:"$callers")
+    db_connection_state = :sys.get_state(db_conn)
+    conn = db_connection_state.mod_state.state
+    :ok = Exqlite.Basic.enable_load_extension(conn)
+    path = Path.join(:code.priv_dir(@app), "timeline.sqlite3ext")
+    {:ok, _query, _result, _conn} = Exqlite.Basic.load_extension(conn, path)
+    :ok = Exqlite.Basic.disable_load_extension(conn)
+  end
 end

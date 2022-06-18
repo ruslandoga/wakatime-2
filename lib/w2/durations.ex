@@ -46,7 +46,7 @@ defmodule W2.Durations do
       |> where([h], not is_nil(h.project))
       |> Repo.one!()
 
-    csv
+    (csv || "")
     |> String.split("\n", trim: true)
     |> Enum.map(fn row ->
       [project, from, to] = String.split(row, ",")

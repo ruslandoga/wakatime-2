@@ -1,6 +1,6 @@
-defmodule W2Web.DashboardViewTest do
+defmodule W2.DashboardViewTest do
   use ExUnit.Case, async: true
-  import W2Web.DashboardView
+  import W2.DashboardView
 
   test "prepare_chart_for_svg/3" do
     buckets = [
