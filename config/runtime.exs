@@ -101,5 +101,5 @@ end
 
 if config_env() == :bench do
   db = System.get_env("DATABASE") || "w2_bench.db"
-  config :w2, W2.Repo, database: Path.expand("../" <> db, Path.dirname(__ENV__.file))
+  config :w2, W2.Repo, database: Path.expand("../" <> db, Path.dirname(__ENV__.file)), cache_size: -2000, pool_size: 20
 end
