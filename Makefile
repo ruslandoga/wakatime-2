@@ -23,7 +23,7 @@ ifeq ($(KERNEL_NAME), Darwin)
 endif
 
 timeline: c_src/*.c c_src/*.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -O2 c_src/*.c -o ${MIX_APP_PATH}/priv/timeline.sqlite3ext
+	@$(CC) $(CFLAGS) $(LDFLAGS) -O2 c_src/*.c -o ${MIX_APP_PATH}/priv/timeline.sqlite3ext
 
 .PHONY: clean
 clean:
