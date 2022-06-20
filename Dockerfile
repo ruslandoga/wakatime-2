@@ -1,4 +1,29 @@
+##############
+# LITESTREAM #
+##############
+
 FROM litestream/litestream:0.3.8 AS litestream
+
+#######
+# ZIG #
+#######
+
+FROM alpine:3.15.4 as zig
+
+ARG ZIGVER=0.10.0-dev.2473+e498fb155
+WORKDIR /deps
+
+RUN apk add --no-cache --update curl xz
+
+RUN curl https://ziglang.org/builds/zig-linux-$(uname -m)-$ZIGVER.tar.xz -O
+RUN tar -xf zig-linux-$(uname -m)-$ZIGVER.tar.xz
+RUN mv zig-linux-$(uname -m)-$ZIGVER/ local/
+RUN rm zig-linux-$(uname -m)-$ZIGVER.tar.xz
+
+#########
+# BUILD #
+#########
+
 FROM hexpm/elixir:1.13.4-erlang-25.0-alpine-3.15.4 as build
 
 # install build dependencies
@@ -20,11 +45,16 @@ COPY config/config.exs config/prod.exs config/
 RUN mix deps.get
 RUN mix deps.compile
 
-# build project
+# build sqlite extension
+COPY sqlite_ext sqlite_ext
+COPY --from=zig /deps/local /deps/local
+RUN ln -s /deps/local/zig /usr/bin/
+RUN zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig
 COPY priv priv
+RUN mv libtimeline.so priv/timeline.sqlite3ext
+
+# build project
 COPY lib lib
-COPY c_src c_src
-COPY Makefile Makefile
 RUN mix sentry_recompile
 COPY config/runtime.exs config/
 
@@ -35,7 +65,10 @@ RUN mix assets.deploy
 # build release
 RUN mix release
 
-# prepare release image
+#######
+# APP #
+#######
+
 FROM alpine:3.15.4 AS app
 RUN apk add --no-cache --update bash openssl libgcc libstdc++
 
