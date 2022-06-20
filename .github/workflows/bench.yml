@@ -18,23 +18,29 @@ jobs:
           elixir-version: "1.13.4"
           otp-version: "25.0"
 
+      - name: Set up Zig
+        uses: goto-bus-stop/setup-zig@v1
+        with:
+          version: 0.10.0-dev.2473+e498fb155
+
       - name: Restore dependencies cache
         uses: actions/cache@v2
         with:
           path: |
             deps
             _build
+            sqlite_ext/zig-cache
           key: ${{ runner.os }}-bench-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-bench-
 
       - name: Install dependencies
         run: mix deps.get --only=bench
 
-      - name: Check formatted
-        run: mix format --check-formatted
-
       - name: Compile (warnings as errors)
         run: MIX_ENV=bench mix compile --warnings-as-errors
+
+      - name: Compile timeline extension
+        run: zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig && mv libtimeline.so priv/timeline.sqlite3ext
 
       - name: Bench
         run: make bench
