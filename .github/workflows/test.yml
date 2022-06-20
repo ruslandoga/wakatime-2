@@ -43,7 +43,7 @@ jobs:
         run: MIX_ENV=test mix compile --warnings-as-errors
 
       - name: Compile timeline extension
-        run: zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig && mv libtimeline.so priv/timeline.sqlite3ext
+        run: make timeline
 
       - name: Run tests
         run: mix test

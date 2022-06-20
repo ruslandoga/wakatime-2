@@ -49,12 +49,12 @@ RUN mix deps.compile
 COPY sqlite_ext sqlite_ext
 COPY --from=zig /deps/local /deps/local
 RUN ln -s /deps/local/zig /usr/bin/
-RUN zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig
-COPY priv priv
-RUN mv libtimeline.so priv/timeline.sqlite3ext
 
 # build project
+COPY priv priv
 COPY lib lib
+COPY Makefile Makefile
+RUN make timeline
 RUN mix sentry_recompile
 COPY config/runtime.exs config/
 
