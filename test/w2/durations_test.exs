@@ -1,16 +1,17 @@
 defmodule W2.DurationsTest do
   use W2.DataCase
   alias W2.Durations
+
   doctest Durations, import: true
 
   describe "fetch_dashboard_data/2" do
     test "project switch" do
       insert_heartbeats([
-        %{time: unix(~U[2022-01-01 12:04:12Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 12:04:13Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 12:04:18Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 12:04:19Z]), project: "w2"},
-        %{time: unix(~U[2022-01-01 12:05:19Z]), project: "w2"}
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
       ])
 
       from = ~U[2022-01-01 12:04:00Z]
@@ -30,9 +31,9 @@ defmodule W2.DurationsTest do
 
     test "hour switch" do
       insert_heartbeats([
-        %{time: unix(~U[2022-01-01 12:58:12Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 12:59:13Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 13:00:18Z]), project: "w1"}
+        %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:00:18Z]), "project" => "w1"}
       ])
 
       from = ~U[2022-01-01 12:50:00Z]
@@ -48,11 +49,11 @@ defmodule W2.DurationsTest do
 
     test "duration break" do
       insert_heartbeats([
-        %{time: unix(~U[2022-01-01 12:04:12Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 12:05:12Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 13:04:18Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 13:04:19Z]), project: "w1"},
-        %{time: unix(~U[2022-01-01 13:05:19Z]), project: "w1"}
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
       ])
 
       from = ~U[2022-01-01 12:00:00Z]
@@ -90,36 +91,5 @@ defmodule W2.DurationsTest do
                unix(~U[2022-01-12 00:00:00Z])
              ]
     end
-  end
-
-  defp unix(dt) do
-    DateTime.to_unix(dt)
-  end
-
-  @default_heartbeat %{
-    branch: "add-ingester",
-    category: "coding",
-    cursorpos: 1,
-    dependencies: nil,
-    editor: "vscode/1.68.0-insider",
-    entity: "/Users/q/Developer/copycat/w1/lib/w1/endpoint.ex",
-    is_write: 1,
-    language: "Elixir",
-    lineno: 31,
-    lines: 64,
-    operating_system: "darwin-21.4.0-arm64",
-    project: "w1",
-    # TODO
-    time: 1_653_576_798.5958169,
-    type: "file"
-  }
-
-  defp insert_heartbeats(heartbeats) do
-    heartbeats =
-      Enum.map(heartbeats, fn heartbeat ->
-        Map.merge(@default_heartbeat, heartbeat)
-      end)
-
-    Repo.insert_all("heartbeats", heartbeats)
   end
 end

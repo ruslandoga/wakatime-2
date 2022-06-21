@@ -227,6 +227,7 @@ defmodule W2Web.DashboardLive.Index do
   end
 
   defp format_time(seconds) do
+    seconds = round(seconds)
     hours = String.pad_leading(to_string(div(seconds, 3600)), 2, "0")
     rem = rem(seconds, 3600)
     minutes = String.pad_leading(to_string(div(rem, 60)), 2, "0")

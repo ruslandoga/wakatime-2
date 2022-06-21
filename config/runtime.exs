@@ -11,17 +11,6 @@ config :sentry,
   environment_name: config_env(),
   included_environments: []
 
-config :w2, W2.Repo,
-  after_connect: fn _conn ->
-    [db_conn] = Process.get(:"$callers")
-    db_connection_state = :sys.get_state(db_conn)
-    conn = db_connection_state.mod_state.state
-    :ok = Exqlite.Basic.enable_load_extension(conn)
-    path = Path.join(:code.priv_dir(:w2), "timeline.sqlite3ext")
-    {:ok, _query, _result, _conn} = Exqlite.Basic.load_extension(conn, path)
-    :ok = Exqlite.Basic.disable_load_extension(conn)
-  end
-
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
@@ -34,6 +23,9 @@ config :w2, W2.Repo,
 if System.get_env("PHX_SERVER") do
   config :w2, W2Web.Endpoint, server: true
 end
+
+# same as timeout in https://wakatime.com/developers#durations
+config :w2, interval: 300
 
 if config_env() == :prod do
   config :w2, api_key: System.fetch_env!("API_KEY")

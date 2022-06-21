@@ -45,7 +45,7 @@ defmodule W2Web.DashboardView do
 
   @compile {:inline, bucket: 2}
   defp bucket(time, interval) do
-    div(time, interval)
+    div(round(time), interval)
   end
 
   def bucket_timeline(timeline, interval) do
@@ -74,10 +74,10 @@ defmodule W2Web.DashboardView do
   end
 
   def prepare_bucket_timeline_for_svg(timeline, from, interval) do
-    begin = div(from, interval)
+    begin = div(round(from), interval)
 
     Enum.map(timeline, fn [project, from, to] ->
-      bucket = div(from, interval)
+      bucket = div(round(from), interval)
       %{x: bucket - begin, y: (bucket + 1) * interval - to, project: project, height: to - from}
     end)
   end
