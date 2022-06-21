@@ -66,8 +66,13 @@ const BranchSum = struct {
     csv: ?std.ArrayList(u8) = null,
 
     fn _add(self: *BranchSum, diff: f64) !void {
-        const result = try self.map.?.getOrPut(self.prev_branch);
-        result.value_ptr.* += diff;
+        if (self.map.?.get(self.prev_branch)) |*v| {
+            v.* += diff;
+        } else {
+            try self.map.?.put(self.prev_branch, diff);
+        }
+        // const result = try self.map.?.getOrPut(self.prev_branch);
+        // result.value_ptr.* += diff;
     }
 
     fn updateValue(self: *BranchSum, value: *c.sqlite3_value) !void {

@@ -57,6 +57,26 @@ defmodule W2.Durations do
   # actually need to agg by branch and entity separately?
   # and need project durations?
 
+  def fetch_project_branches(project, from, to) do
+    csv =
+      "heartbeats"
+      |> select([_], fragment("branch_sum_svg(time, branch)"))
+      |> where([h], h.time > ^time(from))
+      |> where([h], h.time < ^time(to))
+      # TODO
+      |> where(project: ^project)
+      # TODO
+      |> where([h], not is_nil(h.branch))
+      |> Repo.one!()
+
+    (csv || "")
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn row ->
+      [branch, seconds] = String.split(row, ",")
+      [branch, String.to_integer(seconds)]
+    end)
+  end
+
   def fetch_project_timeline(project, from, to) do
     csv =
       "heartbeats"
