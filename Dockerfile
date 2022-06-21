@@ -4,22 +4,6 @@
 
 FROM litestream/litestream:0.3.8 AS litestream
 
-#######
-# ZIG #
-#######
-
-FROM alpine:3.16.0 as zig
-
-ARG ZIGVER=0.10.0-dev.2669+74ed7c1f0
-WORKDIR /deps
-
-RUN apk add --no-cache --update curl xz
-
-RUN curl https://ziglang.org/builds/zig-linux-$(uname -m)-$ZIGVER.tar.xz -O
-RUN tar -xf zig-linux-$(uname -m)-$ZIGVER.tar.xz
-RUN mv zig-linux-$(uname -m)-$ZIGVER/ local/
-RUN rm zig-linux-$(uname -m)-$ZIGVER.tar.xz
-
 #########
 # BUILD #
 #########
@@ -45,16 +29,9 @@ COPY config/config.exs config/prod.exs config/
 RUN mix deps.get
 RUN mix deps.compile
 
-# prepare zig
-COPY sqlite_ext sqlite_ext
-COPY --from=zig /deps/local /deps/local
-RUN ln -s /deps/local/zig /usr/bin/
-
 # build project
 COPY priv priv
 COPY lib lib
-COPY Makefile Makefile
-RUN CPU=znver2 make timeline
 RUN mix sentry_recompile
 COPY config/runtime.exs config/
 

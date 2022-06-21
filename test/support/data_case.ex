@@ -55,4 +55,47 @@ defmodule W2.DataCase do
       end)
     end)
   end
+
+  @default_heartbeat %{
+    "branch" => "add-ingester",
+    "category" => "coding",
+    "cursorpos" => 1,
+    "dependencies" => nil,
+    "entity" => "/Users/q/Developer/copycat/w1/test/endpoint_test.exs",
+    "is_write" => nil,
+    "language" => "Elixir",
+    "lineno" => 1,
+    "lines" => 4,
+    "project" => "w1",
+    "time" => 1_653_576_917.486633,
+    "type" => "file",
+    "user_agent" =>
+      "wakatime/v1.45.3 (darwin-21.4.0-arm64) go1.18.1 vscode/1.68.0-insider vscode-wakatime/18.1.5"
+  }
+
+  def heartbeat(overrides \\ %{}) do
+    Map.merge(@default_heartbeat, overrides)
+  end
+
+  def unix(dt), do: DateTime.to_unix(dt)
+
+  def insert_heartbeats(overrides) do
+    heartbeats = Enum.map(overrides, fn overrides -> heartbeat(overrides) end)
+    W2.Ingester.insert_heartbeats(heartbeats, _machine_name = "mac3.local")
+  end
+
+  alias W2.Repo
+  import Ecto.Query
+
+  def all(schema) when is_atom(schema) do
+    schema
+    |> select([t], map(t, ^schema.__schema__(:fields)))
+    |> Repo.all()
+  end
+
+  def all(table, fields) do
+    table
+    |> select([t], map(t, ^fields))
+    |> Repo.all()
+  end
 end

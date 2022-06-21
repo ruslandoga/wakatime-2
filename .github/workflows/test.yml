@@ -18,18 +18,12 @@ jobs:
           elixir-version: "1.13.4"
           otp-version: "25.0.2"
 
-      - name: Set up Zig
-        uses: goto-bus-stop/setup-zig@v1
-        with:
-          version: 0.10.0-dev.2669+74ed7c1f0
-
       - name: Restore dependencies cache
         uses: actions/cache@v2
         with:
           path: |
             deps
             _build
-            sqlite_ext/zig-cache
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
@@ -41,9 +35,6 @@ jobs:
 
       - name: Compile (warnings as errors)
         run: MIX_ENV=test mix compile --warnings-as-errors
-
-      - name: Compile timeline extension
-        run: make timeline
 
       - name: Run tests
         run: mix test

@@ -37,21 +37,13 @@ defmodule W2.Durations do
   @doc """
   """
   def fetch_timeline(from, to) do
-    csv =
-      "heartbeats"
-      |> select([_], fragment("timeline_csv(time, project)"))
-      |> where([h], h.time > ^time(from))
-      |> where([h], h.time < ^time(to))
-      # TODO
-      |> where([h], not is_nil(h.project))
-      |> Repo.one!()
-
-    csv
-    |> String.split("\n", trim: true)
-    |> Enum.map(fn row ->
-      [project, from, to] = String.split(row, ",")
-      [project, String.to_integer(from), String.to_integer(to)]
-    end)
+    "durations_300"
+    |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
+    # TODO
+    |> where([d], d.start > ^time(from))
+    |> where([d], d.start < ^time(to))
+    |> group_by([d], [d.id, d.project])
+    |> Repo.all()
   end
 
   @h24 24 * 60 * 60
@@ -106,7 +98,7 @@ defmodule W2.Durations do
 
   @compile {:inline, bucket: 2}
   def bucket(time, interval) do
-    div(time, interval)
+    div(round(time), interval)
   end
 
   @doc """

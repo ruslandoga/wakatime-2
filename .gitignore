@@ -39,7 +39,3 @@ npm-debug.log
 .DS_Store
 .elixir_ls
 .envrc
-priv/*.sqlite3ext*
-.vscode/
-sqlite_ext/zig-cache
-sqlite_ext/zig-out

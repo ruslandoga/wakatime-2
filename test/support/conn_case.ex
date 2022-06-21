@@ -23,7 +23,9 @@ defmodule W2Web.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import W2Web.ConnCase
+      import W2.DataCase
 
+      alias W2.Repo
       alias W2Web.Router.Helpers, as: Routes
 
       # The default endpoint for testing

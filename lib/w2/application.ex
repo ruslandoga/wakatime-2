@@ -13,6 +13,7 @@ defmodule W2.Application do
       # Start the Ecto repository
       W2.Repo,
       {W2.Release.Migrator, migrate: repo_config[:migrate]},
+      {W2.Release.Backfill, backfill: repo_config[:backfill]},
       # Start the Telemetry supervisor
       W2Web.Telemetry,
       # Start the PubSub system

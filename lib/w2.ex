@@ -7,7 +7,13 @@ defmodule W2 do
   if it comes from the database, an external API or others.
   """
 
+  @app :w2
+
   def api_key do
-    Application.fetch_env!(:w2, :api_key)
+    Application.fetch_env!(@app, :api_key)
+  end
+
+  def interval do
+    Application.fetch_env!(@app, :interval)
   end
 end

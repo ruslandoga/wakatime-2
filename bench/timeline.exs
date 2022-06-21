@@ -78,8 +78,10 @@ end
 # TODO
 # {:ok, duration_stmt} = Sqlite3.prepare(conn, "select duration(time) from heartbeats")
 
-count = W2.Repo.aggregate("heartbeats", :count)
-IO.puts("heartbeats count=#{count}\n")
+IO.inspect(
+  heartbeats_count: W2.Repo.aggregate("heartbeats", :count),
+  durations_count: W2.Repo.aggregate("durations_300", :count)
+)
 
 Benchee.run(
   %{
@@ -95,7 +97,7 @@ Benchee.run(
     # "multi_step" => fn ->
     #   Durations.multi_step(conn, stmt, nil, nil, [])
     # end,
-    "extension" => fn ->
+    "prepared" => fn ->
       W2.Durations.fetch_timeline(~D[0000-01-01], ~D[2025-01-01])
     end
   },

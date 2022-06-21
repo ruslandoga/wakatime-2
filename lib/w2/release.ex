@@ -15,10 +15,27 @@ defmodule W2.Release do
     end
   end
 
+  defmodule Backfill do
+    use GenServer
+
+    def start_link(opts) do
+      GenServer.start_link(__MODULE__, opts)
+    end
+
+    def init(opts) do
+      if opts[:backfill], do: W2.Release.backfill()
+      :ignore
+    end
+  end
+
   def migrate do
     for repo <- repos() do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
+  end
+
+  def backfill do
+    W2.Ingester.backfill_durations()
   end
 
   defp repos do

@@ -42,7 +42,3 @@ m-*.tar
 README.md
 fly.toml
 Dockerfile
-priv/*.sqlite3ext*
-.vscode/
-sqlite_ext/zig-cache
-sqlite_ext/zig-out
