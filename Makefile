@@ -2,17 +2,10 @@
 bench:
 	@MIX_ENV=bench mix do ecto.reset, run bench/heartbeats_insert.exs, run bench/timeline.exs
 
-KERNEL_NAME := $(shell uname -s)
-
-ifeq ($(KERNEL_NAME), Linux)
-	EXTENSION = so	
-endif
-
-ifeq ($(KERNEL_NAME), Darwin)
-	EXTENSION = dylib
+ifeq ($(CPU),)
+ 	CPU=native
 endif
 
 .PHONY: timeline
 timeline:
-	@zig build-lib -O ReleaseFast -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig
-	@mv libtimeline.$(EXTENSION) priv/timeline.sqlite3ext
+	zig build-lib -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig -mcpu $(CPU) -femit-bin=priv/timeline.sqlite3ext
