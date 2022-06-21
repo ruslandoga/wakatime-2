@@ -8,8 +8,6 @@ defmodule W2.MixProject do
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:gettext] ++ Mix.compilers(),
-      make_targets: ["timeline"],
-      make_clean: ["clean"],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
