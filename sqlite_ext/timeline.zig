@@ -28,6 +28,7 @@ const Timeline = struct {
     prev_project_value: ?*c.sqlite3_value = null,
     prev_time: f64 = 0,
     prev_from: f64 = 0,
+    // TODO ArrayListUnmanaged?
     csv: ?std.ArrayList(u8) = null,
 
     fn append(self: *Timeline, time: f64) !void {
