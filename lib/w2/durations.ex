@@ -46,11 +46,33 @@ defmodule W2.Durations do
       |> where([h], not is_nil(h.project))
       |> Repo.one!()
 
-    csv
+    (csv || "")
     |> String.split("\n", trim: true)
     |> Enum.map(fn row ->
       [project, from, to] = String.split(row, ",")
       [project, String.to_integer(from), String.to_integer(to)]
+    end)
+  end
+
+  def fetch_project_timeline(project, from, to) do
+    csv =
+      "heartbeats"
+      |> select([_], fragment("timeline_csv(time, branch, entity)"))
+      |> where([h], h.time > ^time(from))
+      |> where([h], h.time < ^time(to))
+      # TODO
+      |> where(project: ^project)
+      |> where(type: "file")
+      # TODO
+      |> where([h], not is_nil(h.branch))
+      |> where([h], not is_nil(h.entity))
+      |> Repo.one!()
+
+    (csv || "")
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn row ->
+      [branch, file, from, to] = String.split(row, ",")
+      [branch, file, String.to_integer(from), String.to_integer(to)]
     end)
   end
 
