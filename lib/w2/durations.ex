@@ -54,6 +54,9 @@ defmodule W2.Durations do
     end)
   end
 
+  # actually need to agg by branch and entity separately?
+  # and need project durations?
+
   def fetch_project_timeline(project, from, to) do
     csv =
       "heartbeats"

@@ -39,6 +39,79 @@ const Agg4State = struct {
     }
 };
 
+const BranchSumState = struct {
+    arena: std.heap.ArenaAllocator = undefined,
+    sum: BranchSum = BranchSum{},
+
+    fn inited(self: *BranchSumState) bool {
+        return self.sum.map != null;
+    }
+
+    fn init(self: *BranchSumState) void {
+        self.arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        self.sum.map = std.StringHashMap(f64).init(self.arena.allocator());
+        self.sum.csv = std.ArrayList(u8).init(self.arena.allocator());
+    }
+
+    fn deinit(self: *BranchSumState) void {
+        self.arena.deinit();
+    }
+};
+
+const BranchSum = struct {
+    prev_branch: []const u8 = undefined,
+    prev_branch_value: ?*c.sqlite3_value = null,
+    prev_time: f64 = 0,
+    map: ?std.StringHashMap(f64) = null,
+    csv: ?std.ArrayList(u8) = null,
+
+    fn _add(self: *BranchSum, diff: f64) !void {
+        const result = try self.map.?.getOrPut(self.prev_branch);
+        result.value_ptr.* += diff;
+    }
+
+    fn updateValue(self: *BranchSum, value: *c.sqlite3_value) !void {
+        self.prev_branch_value = sqlite3.value_dup.?(value);
+
+        if (self.prev_branch_value == null and sqlite3.value_type.?(value) != c.SQLITE_NULL) {
+            return AggStateError.NoProjectValue;
+        }
+
+        self.prev_branch = std.mem.span(sqlite3.value_text.?(self.prev_branch_value.?));
+    }
+
+    fn add(self: *BranchSum, time: f64, branch_value: *c.sqlite3_value) !void {
+        if (self.prev_branch_value == null) {
+            try self.updateValue(branch_value);
+            self.prev_time = time;
+            return;
+        }
+
+        const diff = time - self.prev_time;
+        const branch = sqlite3.value_text.?(branch_value);
+        const branch_changed = !std.mem.eql(u8, self.prev_branch, std.mem.span(branch));
+
+        if (diff < 300) try self._add(diff);
+
+        if (branch_changed) {
+            sqlite3.value_free.?(self.prev_branch_value);
+            try self.updateValue(branch_value);
+        }
+
+        self.prev_time = time;
+    }
+
+    fn finish(self: *BranchSum) !void {
+        var i = self.map.?.iterator();
+        while (i.next()) |kv| {
+            try self.csv.?.writer().print("{s},{d}\n", .{
+                kv.key_ptr.*,
+                @floatToInt(u64, kv.value_ptr.*),
+            });
+        }
+    }
+};
+
 const AggStateError = error{ NoState, NoProjectValue };
 
 const Timeline = struct {
@@ -220,6 +293,21 @@ fn get4State(ctx: ?*c.sqlite3_context) !*Agg4State {
     return state.?;
 }
 
+fn getBranchSumState(ctx: ?*c.sqlite3_context) !*BranchSumState {
+    const size = @sizeOf(BranchSumState);
+    const alignment = @alignOf(BranchSumState);
+    const unaligned_ptr = sqlite3.aggregate_context.?(ctx, size + alignment);
+    const state = @intToPtr(?*BranchSumState, std.mem.alignForward(@ptrToInt(unaligned_ptr), alignment));
+
+    if (state == null) {
+        sqlite3.result_error_nomem.?(ctx);
+        return AggStateError.NoState;
+    }
+
+    if (!state.?.inited()) state.?.init();
+    return state.?;
+}
+
 fn timelineStep(ctx: ?*c.sqlite3_context, _: c_int, argv: [*c]?*c.sqlite3_value) callconv(.C) void {
     const state = getState(ctx) catch return;
     const time = sqlite3.value_double.?(argv[0]);
@@ -239,6 +327,27 @@ fn timelineFinal(ctx: ?*c.sqlite3_context) callconv(.C) void {
     };
 
     sqlite3.result_text.?(ctx, state.timeline.csv.?.items.ptr, -1, c.SQLITE_TRANSIENT);
+}
+
+fn branchSumStep(ctx: ?*c.sqlite3_context, _: c_int, argv: [*c]?*c.sqlite3_value) callconv(.C) void {
+    const state = getBranchSumState(ctx) catch return;
+    const time = sqlite3.value_double.?(argv[0]);
+    state.sum.add(time, argv[1].?) catch {
+        state.deinit();
+        sqlite3.result_error_nomem.?(ctx);
+    };
+}
+
+fn branchSumFinal(ctx: ?*c.sqlite3_context) callconv(.C) void {
+    const state = getBranchSumState(ctx) catch return;
+    defer state.deinit();
+
+    state.sum.finish() catch {
+        sqlite3.result_error_nomem.?(ctx);
+        return;
+    };
+
+    sqlite3.result_text.?(ctx, state.sum.csv.?.items.ptr, -1, c.SQLITE_TRANSIENT);
 }
 
 fn timeline4Step(ctx: ?*c.sqlite3_context, _: c_int, argv: [*c]?*c.sqlite3_value) callconv(.C) void {
@@ -282,6 +391,9 @@ pub export fn sqlite3_timeline_init(db: ?*c.sqlite3, _: [*c][*c]u8, pApi: [*c]c.
     //
 
     var result = sqlite3.create_function.?(db, "timeline_csv", 2, c.SQLITE_UTF8, null, null, timelineStep, timelineFinal);
+    if (result != c.SQLITE_OK) return result;
+
+    result = sqlite3.create_function.?(db, "branch_sum_svg", 2, c.SQLITE_UTF8, null, null, branchSumStep, branchSumFinal);
     if (result != c.SQLITE_OK) return result;
 
     //
