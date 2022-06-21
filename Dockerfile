@@ -24,7 +24,7 @@ RUN rm zig-linux-$(uname -m)-$ZIGVER.tar.xz
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.13.4-erlang-25.0.1-alpine-3.16.0 as build
+FROM hexpm/elixir:1.13.4-erlang-25.0.2-alpine-3.16.0 as build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm
