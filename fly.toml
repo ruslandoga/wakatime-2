@@ -5,6 +5,7 @@ kill_timeout = 5
 processes = []
 
 [build]
+  # image = "ghcr.io/ruslandoga/wakatime-2:b518e5b0baacd23e1279316e34238106de0686e1"
   image = "ghcr.io/ruslandoga/wakatime-2:master"
 
 [env]

@@ -14,5 +14,5 @@ endif
 
 .PHONY: timeline
 timeline:
-	@zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig
+	@zig build-lib -O ReleaseFast -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig
 	@mv libtimeline.$(EXTENSION) priv/timeline.sqlite3ext
