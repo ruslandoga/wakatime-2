@@ -8,4 +8,4 @@ endif
 
 .PHONY: timeline
 timeline:
-	zig build-lib -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig -mcpu $(CPU) -femit-bin=priv/timeline.sqlite3ext
+	zig build-lib -O ReleaseSafe -fPIC -Isqlite_ext -dynamic sqlite_ext/timeline.zig -mcpu $(CPU) -femit-bin=priv/timeline.sqlite3ext
