@@ -8,7 +8,7 @@ FROM litestream/litestream:0.3.8 AS litestream
 # ZIG #
 #######
 
-FROM alpine:3.15.4 as zig
+FROM alpine:3.16.0 as zig
 
 ARG ZIGVER=0.10.0-dev.2473+e498fb155
 WORKDIR /deps
@@ -24,7 +24,7 @@ RUN rm zig-linux-$(uname -m)-$ZIGVER.tar.xz
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.13.4-erlang-25.0-alpine-3.15.4 as build
+FROM hexpm/elixir:1.13.4-erlang-25.0.1-alpine-3.16.0 as build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm
@@ -69,7 +69,7 @@ RUN mix release
 # APP #
 #######
 
-FROM alpine:3.15.4 AS app
+FROM alpine:3.16.0 AS app
 RUN apk add --no-cache --update bash openssl libgcc libstdc++
 
 WORKDIR /app
