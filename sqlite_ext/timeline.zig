@@ -76,7 +76,6 @@ const Timeline = struct {
         }
 
         self.prev_time = time;
-        return;
     }
 
     fn finish(self: *Timeline) !void {
@@ -107,7 +106,6 @@ fn timelineStep(ctx: ?*c.sqlite3_context, _: c_int, argv: [*c]?*c.sqlite3_value)
     state.timeline.add(time, argv[1].?) catch {
         state.deinit();
         sqlite3.result_error_nomem.?(ctx);
-        return;
     };
 }
 
