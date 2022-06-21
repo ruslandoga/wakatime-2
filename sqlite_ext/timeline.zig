@@ -40,7 +40,8 @@ const Agg4State = struct {
 };
 
 const BranchSumState = struct {
-    arena: std.heap.ArenaAllocator = undefined,
+    arena1: std.heap.ArenaAllocator = undefined,
+    arena2: std.heap.ArenaAllocator = undefined,
     sum: BranchSum = BranchSum{},
 
     fn inited(self: *BranchSumState) bool {
@@ -48,13 +49,15 @@ const BranchSumState = struct {
     }
 
     fn init(self: *BranchSumState) void {
-        self.arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-        self.sum.map = std.StringHashMap(f64).init(self.arena.allocator());
-        self.sum.csv = std.ArrayList(u8).init(self.arena.allocator());
+        self.arena1 = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        self.sum.map = std.StringHashMap(f64).init(self.arena1.allocator());
+        self.arena2 = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        self.sum.csv = std.ArrayList(u8).init(self.arena2.allocator());
     }
 
     fn deinit(self: *BranchSumState) void {
-        self.arena.deinit();
+        self.arena1.deinit();
+        self.arena2.deinit();
     }
 };
 
@@ -66,8 +69,9 @@ const BranchSum = struct {
     csv: ?std.ArrayList(u8) = null,
 
     fn _add(self: *BranchSum, diff: f64) !void {
-        if (self.map.?.get(self.prev_branch)) |*v| {
-            v.* += diff;
+        // std.debug.print("adding {s},{d}\n", .{ self.prev_branch, diff });
+        if (self.map.?.getPtr(self.prev_branch)) |sum| {
+            sum.* += diff;
         } else {
             try self.map.?.put(self.prev_branch, diff);
         }
@@ -109,6 +113,7 @@ const BranchSum = struct {
     fn finish(self: *BranchSum) !void {
         var i = self.map.?.iterator();
         while (i.next()) |kv| {
+            std.debug.print("writing {s},{d}\n", .{ kv.key_ptr.*, kv.value_ptr.* });
             try self.csv.?.writer().print("{s},{d}\n", .{
                 kv.key_ptr.*,
                 @floatToInt(u64, kv.value_ptr.*),
@@ -351,6 +356,8 @@ fn branchSumFinal(ctx: ?*c.sqlite3_context) callconv(.C) void {
         sqlite3.result_error_nomem.?(ctx);
         return;
     };
+
+    std.debug.print("{s}", .{state.sum.csv.?.items});
 
     sqlite3.result_text.?(ctx, state.sum.csv.?.items.ptr, -1, c.SQLITE_TRANSIENT);
 }
