@@ -10,7 +10,7 @@ FROM litestream/litestream:0.3.8 AS litestream
 
 FROM alpine:3.16.0 as zig
 
-ARG ZIGVER=0.10.0-dev.2473+e498fb155
+ARG ZIGVER=0.10.0-dev.2669+74ed7c1f0
 WORKDIR /deps
 
 RUN apk add --no-cache --update curl xz
@@ -45,7 +45,7 @@ COPY config/config.exs config/prod.exs config/
 RUN mix deps.get
 RUN mix deps.compile
 
-# build sqlite extension
+# prepare zig
 COPY sqlite_ext sqlite_ext
 COPY --from=zig /deps/local /deps/local
 RUN ln -s /deps/local/zig /usr/bin/
@@ -54,7 +54,7 @@ RUN ln -s /deps/local/zig /usr/bin/
 COPY priv priv
 COPY lib lib
 COPY Makefile Makefile
-RUN make timeline
+RUN CPU=znver2 make timeline
 RUN mix sentry_recompile
 COPY config/runtime.exs config/
 
