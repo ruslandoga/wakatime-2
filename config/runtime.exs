@@ -52,7 +52,8 @@ if config_env() == :prod do
     # https://litestream.io/tips/#busy-timeout
     busy_timeout: 5000,
     cache_size: -2000,
-    migrate: true
+    migrate: true,
+    backfill: true
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -84,7 +85,10 @@ end
 
 if config_env() == :dev do
   config :w2, api_key: "406fe41f-6d69-4183-a4cc-121e0c524c2b"
-  config :w2, W2.Repo, database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file))
+
+  config :w2, W2.Repo,
+    database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file)),
+    backfill: true
 end
 
 if config_env() == :test do
