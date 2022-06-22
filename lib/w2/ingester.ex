@@ -20,8 +20,15 @@ defmodule W2.Ingester do
 
   def backfill_durations do
     duration_table = duration_table(W2.interval())
-    time = duration_table |> order_by(desc: :start) |> select([d], d.start + d.length)
-    backfill_durations(time)
+
+    time =
+      duration_table
+      |> order_by(desc: :start)
+      |> limit(1)
+      |> select([d], d.start + d.length)
+      |> Repo.one()
+
+    backfill_durations(time || 0)
   end
 
   defp backfill_durations(time) do
