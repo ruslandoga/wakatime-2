@@ -15,11 +15,12 @@ function els() {
   const rects = Array.from(document.querySelectorAll("rect[data-project]"));
   const projects = Array.from(document.querySelectorAll("li[data-project]"));
   const branches = Array.from(document.querySelectorAll("li[data-branch]"));
-  return { rects, projects, branches };
+  const files = Array.from(document.querySelectorAll("li[data-file]"));
+  return { rects, projects, branches, files };
 }
 
 function onProjectHover() {
-  const { rects, projects, branches } = els();
+  const { rects, projects, branches, files } = els();
 
   projects.forEach((p) => {
     const project = p.dataset.project;
@@ -32,18 +33,21 @@ function onProjectHover() {
       (el) => el.dataset.project != project
     );
 
+    const otherFiles = files.filter((el) => el.dataset.project != project);
     const otherRects = rects.filter((el) => el.dataset.project != project);
 
     p.onmouseenter = () => {
       otherProjects.forEach((el) => (el.style.opacity = 0.2));
-      otherBranches.forEach((el) => (el.style.opacity = 0.2));
       otherRects.forEach((el) => (el.style.opacity = 0.2));
+      otherBranches.forEach((el) => (el.style.display = "none"));
+      otherFiles.forEach((el) => (el.style.display = "none"));
     };
 
     p.onmouseleave = () => {
       otherProjects.forEach((el) => (el.style.opacity = 1));
-      otherBranches.forEach((el) => (el.style.opacity = 1));
       otherRects.forEach((el) => (el.style.opacity = 1));
+      otherBranches.forEach((el) => (el.style.display = "flex"));
+      otherFiles.forEach((el) => (el.style.display = "flex"));
     };
   });
 }
@@ -67,14 +71,52 @@ function onBranchHover() {
     );
 
     b.onmouseenter = onmouseenter = () => {
-      otherBranches.forEach((el) => (el.style.opacity = 0.2));
       otherProjects.forEach((el) => (el.style.opacity = 0.2));
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
       otherRects.forEach((el) => (el.style.opacity = 0.2));
     };
 
     b.onmouseleave = () => {
+      otherProjects.forEach((el) => (el.style.opacity = 1));
+      otherBranches.forEach((el) => (el.style.opacity = 1));
+      otherRects.forEach((el) => (el.style.opacity = 1));
+    };
+  });
+}
+
+function onFileHover() {
+  const { rects, projects, branches, files } = els();
+
+  files.forEach((f) => {
+    const { project, file } = f.dataset;
+
+    const otherProjects = projects.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherBranches = branches.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherRects = rects.filter(
+      (el) => el.dataset.file != file || el.dataset.project != project
+    );
+
+    const otherFiles = files.filter(
+      (el) => el.dataset.file != file || el.dataset.project != project
+    );
+
+    f.onmouseenter = onmouseenter = () => {
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
+      otherProjects.forEach((el) => (el.style.opacity = 0.2));
+      otherFiles.forEach((el) => (el.style.opacity = 0.2));
+      otherRects.forEach((el) => (el.style.opacity = 0.2));
+    };
+
+    f.onmouseleave = () => {
       otherBranches.forEach((el) => (el.style.opacity = 1));
       otherProjects.forEach((el) => (el.style.opacity = 1));
+      otherFiles.forEach((el) => (el.style.opacity = 1));
       otherRects.forEach((el) => (el.style.opacity = 1));
     };
   });
@@ -112,7 +154,7 @@ function onRectHover() {
   });
 }
 
-const HighlightHook = {
+const ProjectHighlightHook = {
   mounted() {
     onProjectHover();
   },
@@ -132,6 +174,16 @@ const BranchHighlightHook = {
   },
 };
 
+const FileHighlightHook = {
+  mounted() {
+    onFileHover();
+  },
+
+  updated() {
+    onFileHover();
+  },
+};
+
 const RectHighlightHook = {
   mounted() {
     onRectHover();
@@ -143,8 +195,9 @@ const RectHighlightHook = {
 
 let liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
-    HighlightHook,
+    ProjectHighlightHook,
     BranchHighlightHook,
+    FileHighlightHook,
     RectHighlightHook,
   },
   params: { _csrf_token: csrfToken },

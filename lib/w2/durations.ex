@@ -17,10 +17,9 @@ defmodule W2.Durations do
   """
   def fetch_timeline(opts \\ []) do
     duration_table()
-    |> select([d], [d.project, d.branch, min(d.start), min(d.start) + sum(d.length)])
+    |> select([d], [d.project, d.branch, d.entity, d.start, d.start + d.length])
     |> date_range(opts)
     |> project(opts)
-    |> group_by([d], [d.id, d.project, d.branch])
     |> Repo.all()
   end
 
@@ -33,6 +32,8 @@ defmodule W2.Durations do
     |> date_range(opts)
     |> group_by([d], d.project)
     |> order_by([d], desc: sum(d.length))
+    # TODO
+    |> where([d], not is_nil(d.project))
     |> Repo.all()
   end
 
@@ -55,7 +56,10 @@ defmodule W2.Durations do
       |> date_range(opts)
       |> project(opts)
       |> order_by([d], desc: sum(d.length))
-      |> limit(50)
+      # TODO
+      |> where([d], not is_nil(d.branch))
+
+    # |> limit(50)
 
     query =
       if opts[:project] do
@@ -66,6 +70,7 @@ defmodule W2.Durations do
         query
         |> select([d], [d.project, d.branch, sum(d.length)])
         |> group_by([d], [d.project, d.branch])
+        |> where([d], not is_nil(d.project))
       end
 
     Repo.all(query)
@@ -80,7 +85,10 @@ defmodule W2.Durations do
       |> date_range(opts)
       |> project(opts)
       |> order_by([d], desc: sum(d.length))
-      |> limit(50)
+      # TODO
+      |> where([d], not is_nil(d.entity))
+
+    # |> limit(100)
 
     query =
       if opts[:project] do
@@ -91,6 +99,7 @@ defmodule W2.Durations do
         query
         |> select([d], [d.project, d.entity, sum(d.length)])
         |> group_by([d], [d.project, d.entity])
+        |> where([d], not is_nil(d.project))
       end
 
     Repo.all(query)

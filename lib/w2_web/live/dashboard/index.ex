@@ -3,8 +3,8 @@ defmodule W2Web.DashboardLive.Index do
   alias W2.{Durations, Ingester}
   alias W2Web.DashboardView
 
-  # hover -> highlight file
   # fix highlight on selection
+
   # maybe just hide instead of filter + refetch
   # custom scroll animation
   # custom scroll indicator
@@ -106,13 +106,13 @@ defmodule W2Web.DashboardLive.Index do
     </div>
     <ul id="branches-table" class="overflow-auto" phx-hook="BranchHighlightHook">
       <%= for [project, branch, total] <- @branches do %>
-      <li class="px-4 flex justify-between leading-6 odd:bg-red-200" data-project={project} data-branch={branch}>
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200 transition" data-project={project} data-branch={branch}>
         <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= branch || "?unknown?" %></span></span>
         <span><%= format_time(total) %></span>
       </li>
       <% end %>
       <%= for [branch, total] <- @branches do %>
-      <li class="px-4 flex justify-between leading-6 odd:bg-red-200" data-branch={branch}>
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200 transition" data-branch={branch}>
         <span class="truncate"><%= branch || "?unknown?" %></span>
         <span><%= format_time(total) %></span>
       </li>
@@ -127,15 +127,15 @@ defmodule W2Web.DashboardLive.Index do
       <span>FILE</span>
       <span>TIME</span>
     </div>
-      <ul class="overflow-auto">
+      <ul id="files-table" class="overflow-auto" phx-hook="FileHighlightHook">
       <%= for [project, file, total] <- @files do %>
-        <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100">
+        <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100 transition" data-project={project} data-file={file}>
           <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= file || "?unknown?" %></span></span>
           <span><%= format_time(total) %></span>
         </li>
       <% end %>
       <%= for [file, total] <- @files do %>
-      <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100">
+      <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100 transition" data-file={file}>
         <span class="truncate"><%= file || "?unknown?" %></span>
         <span><%= format_time(total) %></span>
       </li>
@@ -150,12 +150,12 @@ defmodule W2Web.DashboardLive.Index do
       <span>PROJECT</span>
       <span>TIME</span>
     </div>
-    <ul id="projects-table" class="overflow-auto" phx-hook="HighlightHook">
+    <ul id="projects-table" class="overflow-auto" phx-hook="ProjectHighlightHook">
       <%= for [project, total] <- @projects do %>
         <li data-project={project}>
           <%= live_patch to: Routes.dashboard_index_path(W2Web.Endpoint, :show, project || "unknown", @qs),
               style: "background-color:#{color(project)}",
-              class: "px-4 flex justify-between leading-6 hover:font-bold" <> if(@project == project, do: " font-bold", else: "") do %>
+              class: "px-4 flex justify-between leading-6 hover:font-bold transition" <> if(@project == project, do: " font-bold", else: "") do %>
             <span class="truncate"><%= project || "?unknown?" %></span>
             <span><%= format_time(total) %></span>
           <% end %>
