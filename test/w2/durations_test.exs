@@ -88,8 +88,8 @@ defmodule W2.DurationsTest do
     to = ~U[2022-01-01 14:00:00Z]
 
     assert Durations.fetch_branches(project: "w2", from: from, to: to) == [
-             ["a-feature", 121],
-             ["cool-feature", 60]
+             ["w2", "a-feature", 121],
+             ["w2", "cool-feature", 60]
            ]
   end
 
@@ -109,10 +109,10 @@ defmodule W2.DurationsTest do
     to = ~U[2022-01-01 14:00:00Z]
 
     assert Durations.fetch_files(project: "w2", from: from, to: to) == [
-             ["lib/router.ex", 120],
-             ["lib/api.ex", 61],
-             ["lib/api2.ex", 60],
-             ["lib/app.ex", 0]
+             ["w2", "lib/router.ex", 120],
+             ["w2", "lib/api.ex", 61],
+             ["w2", "lib/api2.ex", 60],
+             ["w2", "lib/app.ex", 0]
            ]
   end
 
