@@ -3,31 +3,47 @@ defmodule W2Web.DashboardLive.Index do
   alias W2.{Durations, Ingester}
   alias W2Web.DashboardView
 
+  # hover -> highlight branch / file
+
   @days 7
 
   @impl true
   def render(assigns) do
+    qs =
+      if from = assigns.from,
+        do: [from: from |> NaiveDateTime.to_date() |> Date.to_iso8601()],
+        else: []
+
+    qs =
+      if to = assigns.to,
+        do: Keyword.put(qs, :to, to |> NaiveDateTime.to_date() |> Date.to_iso8601()),
+        else: qs
+
+    assigns = assign(assigns, qs: qs)
+
     ~H"""
-    <div class="min-h-screen w-full bg-red-100 flex flex-col md:flex-row font-mono">
-      <div class="md:w-1/2 lg:w-3/4 bg-red-200 flex flex-col order-2 md:order-1">
-        <div class="p-4 h-64 md:flex-grow">
-          <.bucket_timeline from={@from} to={@to} timeline={@timeline} />
-        </div>
+    <div class="h-screen w-full bg-red-100 font-mono overflow-hidden">
+      <div class="h-1/2">
+        <.bucket_timeline from={@from} to={@to} timeline={@timeline} />
       </div>
-      <div class="md:w-1/2 lg:w-1/4 bg-red-300 order-1 md:order-2">
-        <form class="p-4 inline-block" phx-change="date-range" phx-submit="date-range">
-          <input type="date" id="from-date" name="from_date" value={@from_date} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
-          <input type="time" id="from-time" name="from_time" value={@from_time} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
-          --
-          <input type="date" id="to-date" name="to_date" value={@to_date} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
-          <input type="time" id="to-time" name="to_time" value={@to_time} class="px-1 bg-pink-200 text-blue-600" phx-debounce="300"/>
-        </form>
-        <div class="px-4 pb-4 font-semibold ">
-          <span>Total <%= format_time(@total) %></span>
+      <div class="h-1/2 flex">
+        <div class="w-1/3 flex flex-col">
+          <div class="bg-neutral-600 px-4 flex justify-between">
+            <form class="inline-block text-blue-200" phx-change="date-range" phx-submit="date-range">
+              <input type="date" id="from-date" name="from_date" value={@from_date} class="bg-neutral-600" phx-debounce="300"/>
+              —
+              <input type="date" id="to-date" name="to_date" value={@to_date} class="bg-neutral-600" phx-debounce="300"/>
+            </form>
+            <span class="text-white">Σ<%= format_time(@total) %></span>
+          </div>
+          <.projects_table
+            total={@total}
+            projects={@projects}
+            project={@project}
+            qs={@qs} />
         </div>
-        <div class="px-4 pb-4">
-          <.table projects={@projects} />
-        </div>
+        <div class="w-1/3 flex flex-col"><.branches_table branches={@branches}/></div>
+        <div class="w-1/3 flex flex-col"><.files_table files={@files}/></div>
       </div>
     </div>
     """
@@ -71,30 +87,70 @@ defmodule W2Web.DashboardLive.Index do
     ~H[<rect x={@x} y={@y} width={@width} height={@height} fill={@color} />]
   end
 
-  defp table(assigns) do
+  defp branches_table(assigns) do
     ~H"""
-    <table class="border w-full border-red-700">
-      <thead class="border border-red-700">
-        <th class="px-1 text-left">project</th>
-        <th class="px-1 text-left">time</th>
-      </thead>
-      <tbody class="divide-y divide-red-700">
-        <%= for {project, total} <- @projects do %><.table_row
-          project={project}
-          color={color(project)}
-          total={total}
-        /><% end %>
-      </tbody>
-    </table>
+    <div class="flex justify-between bg-red-400 px-4">
+      <span>BRANCH</span>
+      <span>TIME</span>
+    </div>
+    <ul class="overflow-auto">
+      <%= for [project, branch, total] <- @branches do %>
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200">
+        <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= branch || "?unknown?" %></span></span>
+        <span><%= format_time(total) %></span>
+      </li>
+      <% end %>
+      <%= for [branch, total] <- @branches do %>
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200">
+        <span class="truncate"><%= branch || "?unknown?" %></span>
+        <span><%= format_time(total) %></span>
+      </li>
+      <% end %>
+    </ul>
     """
   end
 
-  defp table_row(assigns) do
+  defp files_table(assigns) do
     ~H"""
-    <tr style={"background-color:#{@color}"}>
-      <td class={"px-1 leading-8 font-medium hover:opacity-50 cursor-pointer text-ellipsis"}><%= @project %></td>
-      <td class="font-medium"><%= format_time(@total) %></td>
-    </tr>
+    <div class="flex justify-between bg-blue-400 px-4">
+      <span>FILE</span>
+      <span>TIME</span>
+    </div>
+      <ul class="overflow-auto">
+      <%= for [project, file, total] <- @files do %>
+        <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100">
+          <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= file || "?unknown?" %></span></span>
+          <span><%= format_time(total) %></span>
+        </li>
+      <% end %>
+      <%= for [file, total] <- @files do %>
+      <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100">
+        <span class="truncate"><%= file || "?unknown?" %></span>
+        <span><%= format_time(total) %></span>
+      </li>
+      <% end %>
+    </ul>
+    """
+  end
+
+  defp projects_table(assigns) do
+    ~H"""
+    <div class="flex justify-between bg-black text-white px-4">
+      <span>PROJECT</span>
+      <span>TIME</span>
+    </div>
+    <ul class="overflow-auto">
+      <%= for [project, total] <- @projects do %>
+        <li>
+          <%= live_patch to: Routes.dashboard_index_path(W2Web.Endpoint, :show, project || "unknown", @qs),
+              style: "background-color:#{color(project)}",
+              class: "px-4 flex justify-between leading-6 hover:font-bold" <> if(@project == project, do: " font-bold", else: "") do %>
+            <span class="truncate"><%= project || "?unknown?" %></span>
+            <span><%= format_time(total) %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
     """
   end
 
@@ -104,48 +160,55 @@ defmodule W2Web.DashboardLive.Index do
       Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
     end
 
-    {:ok, reset_date_range(socket)}
+    {:ok, socket}
   end
 
   @impl true
-  def handle_params(%{"from" => from, "to" => to}, _uri, socket) do
-    with {:ok, from} <- parse_from(from), {:ok, to} <- parse_to(to) do
-      {:noreply, socket |> set_date_range(from, to) |> fetch_data()}
+  def handle_params(params, _uri, socket) do
+    {:noreply, apply_action(params, socket.assigns.live_action, socket)}
+  end
+
+  defp apply_action(%{"project" => project} = params, :show, socket) do
+    socket |> assign(project: project) |> apply_dates(params) |> fetch_data()
+  end
+
+  defp apply_action(params, :index, socket) do
+    socket |> assign(project: nil) |> apply_dates(params) |> fetch_data()
+  end
+
+  defp apply_dates(socket, %{"from" => from, "to" => to}) do
+    with {:ok, from} <- Date.from_iso8601(from),
+         {:ok, to} <- Date.from_iso8601(to) do
+      set_date_range(socket, from, to)
     else
-      _ -> {:noreply, push_patch(socket, to: "/", replace: true)}
+      # TODO halt
+      _ -> push_patch(socket, to: "/", replace: true)
     end
   end
 
-  def handle_params(_params, _uri, socket) do
-    {:noreply, socket |> reset_date_range() |> fetch_data()}
+  defp apply_dates(socket, _params) do
+    reset_date_range(socket)
   end
 
   @impl true
   def handle_event("date-range", params, socket) do
     # TODO validate
-    %{
-      "from_date" => from_date,
-      "to_date" => to_date,
-      "from_time" => from_time,
-      "to_time" => to_time
-    } = params
-
-    from = parse_date_time(from_date, from_time)
-    to = parse_date_time(to_date, to_time)
+    %{"from_date" => from_date, "to_date" => to_date} = params
+    from = maybe_date(from_date)
+    to = maybe_date(to_date)
 
     path =
       Routes.dashboard_index_path(socket, :index,
-        from: NaiveDateTime.to_iso8601(from),
-        to: NaiveDateTime.to_iso8601(to)
+        from: from && Date.to_iso8601(from),
+        to: to && Date.to_iso8601(to)
       )
 
     {:noreply, push_patch(socket, to: path, replace: true)}
   end
 
-  defp parse_date_time(date, time) do
-    case {Date.from_iso8601(date), Time.from_iso8601(time)} do
-      {{:ok, date}, {:ok, time}} -> NaiveDateTime.new!(date, time)
-      {{:ok, date}, _} -> NaiveDateTime.new!(date, Time.new!(0, 0, 0))
+  defp maybe_date(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> date
       _ -> nil
     end
   end
@@ -159,43 +222,84 @@ defmodule W2Web.DashboardLive.Index do
   defp fetch_data(socket) do
     to = DateTime.from_naive!(socket.assigns.to || NaiveDateTime.utc_now(), "Etc/UTC")
     from = DateTime.from_naive!(socket.assigns.from || add_days(to, -@days), "Etc/UTC")
+    project = socket.assigns[:project]
 
-    %{total: total, projects: projects, timeline: timeline} =
-      Durations.fetch_dashboard_data(from, to)
+    timeline = Durations.fetch_timeline(project: project, from: from, to: to)
+    projects = Durations.fetch_projects(from: from, to: to)
 
-    # TODO
-    projects = Enum.sort_by(projects, fn {_project, time} -> time end, :desc)
+    total =
+      if project do
+        Enum.find_value(projects, fn [p, total] ->
+          if p == project, do: total
+        end) || 0
+      else
+        Enum.reduce(projects, 0, fn [_project, total], acc -> acc + total end)
+      end
+
+    branches = Durations.fetch_branches(project: project, from: from, to: to)
+
+    files =
+      Durations.fetch_files(project: project, from: from, to: to)
+      |> Enum.map(fn
+        [project, file, time] = og ->
+          # TODO
+          if file = file |> String.split("/") |> remove_file_project_prefix(project) do
+            [project, Enum.join(file, "/"), time]
+          else
+            og
+          end
+
+        [file, time] = og ->
+          if file = file |> String.split("/") |> remove_file_project_prefix(project) do
+            [Enum.join(file, "/"), time]
+          else
+            og
+          end
+      end)
 
     socket
     |> assign(total: total)
     |> assign(projects: projects)
+    |> assign(branches: branches)
+    |> assign(files: files)
     |> assign(timeline: timeline)
-    |> assign(page_title: format_time(total))
+    |> assign(page_title: page_title(project, total))
   end
+
+  defp page_title(project, total) do
+    if project do
+      project <> " " <> format_time(total)
+    else
+      format_time(total)
+    end
+  end
+
+  defp remove_file_project_prefix([project | rest], project), do: rest
+
+  defp remove_file_project_prefix([_ | rest], project),
+    do: remove_file_project_prefix(rest, project)
+
+  defp remove_file_project_prefix([], _project), do: nil
 
   defp reset_date_range(socket) do
     to = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
     from = add_days(to, -@days)
-    set_date_range(socket, from, to)
+
+    assign(socket,
+      from: nil,
+      to: nil,
+      from_date: NaiveDateTime.to_date(from),
+      to_date: NaiveDateTime.to_date(to)
+    )
   end
 
   defp set_date_range(socket, from, to) do
     assign(socket,
-      from: from,
-      to: to,
-      from_date: NaiveDateTime.to_date(from),
-      from_time: NaiveDateTime.to_time(from),
-      to_date: NaiveDateTime.to_date(to),
-      to_time: NaiveDateTime.to_time(to)
+      from: NaiveDateTime.new!(from, ~T[00:00:00]),
+      to: NaiveDateTime.new!(to, ~T[23:59:59]),
+      from_date: from,
+      to_date: to
     )
-  end
-
-  defp parse_from(value) do
-    NaiveDateTime.from_iso8601(value)
-  end
-
-  defp parse_to(value) do
-    NaiveDateTime.from_iso8601(value)
   end
 
   # TODO

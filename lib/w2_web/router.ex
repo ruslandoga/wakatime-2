@@ -18,7 +18,6 @@ defmodule W2Web.Router do
   scope "/", W2Web do
     pipe_through :browser
 
-    live "/", DashboardLive.Index, :index
     get "/barchart.svg", SVGController, :barchart
     get "/bucket-timeline.svg", SVGController, :bucket_timeline
     get "/test.svg", SVGController, :test_svg
@@ -34,10 +33,18 @@ defmodule W2Web.Router do
     post "/plugins/errors", HeartbeatController, :ignore
   end
 
-  scope "/", W2Web do
+  # TODO /api?
+  scope "/api", W2Web do
     pipe_through :api
-    # TODO
-    get "/data", APIController, :data
+    get "/timeline", APIController, :timeline
+    get "/projects", APIController, :timeline
+  end
+
+  scope "/", W2Web do
+    pipe_through :browser
+
+    live "/", DashboardLive.Index, :index
+    live "/:project", DashboardLive.Index, :show
   end
 
   # Enables LiveDashboard only for development

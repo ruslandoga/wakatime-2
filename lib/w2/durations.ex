@@ -6,77 +6,94 @@ defmodule W2.Durations do
   alias W2.Repo
   import Ecto.Query
 
-  def duration_table(interval) do
+  def duration_table(interval \\ W2.interval()) do
     "durations_#{interval}"
   end
 
   # TODO from = div(from, 3600), to = div(to, 3600) + 1
 
   @doc """
-  Aggregates durations into a project timeline, time spent in each project, and total time spent.
-  """
-  def fetch_dashboard_data(from, to) do
-    timeline = fetch_timeline(from, to)
-    project_totals = project_totals_from_timeline(timeline)
-
-    %{
-      timeline: timeline,
-      total: Enum.reduce(project_totals, 0, fn {_project, total}, acc -> acc + total end),
-      projects: project_totals
-    }
-  end
-
-  @doc false
-  def project_totals_from_timeline(timeline) do
-    project_totals_from_timeline(timeline, %{})
-  end
-
-  defp project_totals_from_timeline([[project, from, to] | rest], acc) do
-    acc = Map.update(acc, project, to - from, fn prev -> prev + to - from end)
-    project_totals_from_timeline(rest, acc)
-  end
-
-  defp project_totals_from_timeline([], acc), do: acc
-
-  @doc """
   Aggregates durations into a project timeline.
   """
-  def fetch_timeline(from, to, interval \\ W2.interval()) do
-    duration_table(interval)
+  def fetch_timeline(opts \\ []) do
+    duration_table()
     |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
-    # TODO
-    |> where([d], d.start > ^time(from))
-    |> where([d], d.start < ^time(to))
+    |> date_range(opts)
+    |> project(opts)
     |> group_by([d], [d.id, d.project])
     |> Repo.all()
   end
 
   @doc """
-  Aggregates durations into time spent per branch in a project.
+  Aggregates durations into time spent per project.
   """
-  def fetch_project_branches(project, from, to, interval \\ W2.interval()) do
-    duration_table(interval)
-    |> select([d], [d.branch, sum(d.length)])
-    |> where(project: ^project)
-    |> where([d], d.start > ^time(from))
-    |> where([d], d.start < ^time(to))
-    |> group_by([d], d.branch)
+  def fetch_projects(opts \\ []) do
+    duration_table()
+    |> select([d], [d.project, sum(d.length)])
+    |> date_range(opts)
+    |> group_by([d], d.project)
     |> order_by([d], desc: sum(d.length))
     |> Repo.all()
   end
 
+  defp date_range(query, opts) do
+    # TODO where(query, [d], d.start - d.length > ^time(from))
+    query = if from = opts[:from], do: where(query, [d], d.start > ^time(from)), else: query
+    if to = opts[:to], do: where(query, [d], d.start < ^time(to)), else: query
+  end
+
+  defp project(query, opts) do
+    if project = opts[:project], do: where(query, project: ^project), else: query
+  end
+
   @doc """
-  Aggregates durations into time spent per file in a project.
+  Aggregates durations into time spent per branch.
   """
-  def fetch_project_files(project, from, to, interval \\ W2.interval()) do
-    duration_table(interval)
-    |> select([d], [d.entity, sum(d.length)])
-    |> where(project: ^project)
-    |> where([d], d.start > ^time(from))
-    |> where([d], d.start < ^time(to))
-    |> group_by([d], d.entity)
-    |> order_by([d], desc: sum(d.length))
-    |> Repo.all()
+  def fetch_branches(opts \\ []) do
+    query =
+      duration_table()
+      |> date_range(opts)
+      |> project(opts)
+      |> order_by([d], desc: sum(d.length))
+      |> limit(50)
+
+    query =
+      if opts[:project] do
+        query
+        |> select([d], [d.branch, sum(d.length)])
+        |> group_by([d], d.branch)
+      else
+        query
+        |> select([d], [d.project, d.branch, sum(d.length)])
+        |> group_by([d], [d.project, d.branch])
+      end
+
+    Repo.all(query)
+  end
+
+  @doc """
+  Aggregates durations into time spent per file.
+  """
+  def fetch_files(opts \\ []) do
+    query =
+      duration_table()
+      |> date_range(opts)
+      |> project(opts)
+      |> order_by([d], desc: sum(d.length))
+      |> limit(50)
+
+    query =
+      if opts[:project] do
+        query
+        |> select([d], [d.entity, sum(d.length)])
+        |> group_by([d], d.entity)
+      else
+        query
+        |> select([d], [d.project, d.entity, sum(d.length)])
+        |> group_by([d], [d.project, d.entity])
+      end
+
+    Repo.all(query)
   end
 
   @h24 24 * 60 * 60
@@ -137,7 +154,7 @@ defmodule W2.Durations do
 
   @doc "Aggregates durations into 1-hour buckets"
   def fetch_bucket_data(from, to) do
-    timeline = fetch_timeline(from, to)
+    timeline = fetch_timeline(from: from, to: to)
     interval = interval(from, to)
 
     timeline

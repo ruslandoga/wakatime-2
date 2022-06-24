@@ -36,7 +36,7 @@ defmodule W2Web.SVGController do
   def bucket_timeline(conn, params) do
     to = :os.system_time(:second)
     from = to - @days * 24 * 3600
-    timeline = Durations.fetch_timeline(from, to)
+    timeline = Durations.fetch_timeline(from: from, to: to)
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 

@@ -98,7 +98,7 @@ Benchee.run(
     #   Durations.multi_step(conn, stmt, nil, nil, [])
     # end,
     "prepared" => fn ->
-      W2.Durations.fetch_timeline(~D[0000-01-01], ~D[2025-01-01])
+      W2.Durations.fetch_timeline(from: ~D[0000-01-01], to: ~D[2025-01-01])
     end
   },
   memory_time: 2
