@@ -72,6 +72,48 @@ defmodule W2.DurationsTest do
     end
   end
 
+  test "fetch_project_branches/3" do
+    insert_heartbeats([
+      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w2", "branch" => "cool-feature"},
+      %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "branch" => "cool-feature"},
+      %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "branch" => "a-feature"},
+      %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w2", "branch" => "a-feature"},
+      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "branch" => "a-feature"},
+      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "branch" => "a-feature"}
+    ])
+
+    from = ~U[2022-01-01 12:00:00Z]
+    to = ~U[2022-01-01 14:00:00Z]
+
+    assert Durations.fetch_project_branches("w2", from, to) == [
+             ["a-feature", 121],
+             ["cool-feature", 60]
+           ]
+  end
+
+  test "fetch_project_files/3" do
+    insert_heartbeats([
+      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w2", "entity" => "lib/router.ex"},
+      %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "entity" => "lib/api.ex"},
+      %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "entity" => "lib/api.ex"},
+      %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w2", "entity" => "lib/router.ex"},
+      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "entity" => "lib/api2.ex"},
+      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "entity" => "lib/app.ex"},
+      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w2", "entity" => "lib/api2.ex"},
+      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w2", "entity" => "lib/app.ex"}
+    ])
+
+    from = ~U[2022-01-01 12:00:00Z]
+    to = ~U[2022-01-01 14:00:00Z]
+
+    assert Durations.fetch_project_files("w2", from, to) == [
+             ["lib/router.ex", 120],
+             ["lib/api.ex", 61],
+             ["lib/api2.ex", 60],
+             ["lib/app.ex", 0]
+           ]
+  end
+
   describe "day_starts/2" do
     test "returns all 0th hours between two timestamps" do
       assert Durations.day_starts(

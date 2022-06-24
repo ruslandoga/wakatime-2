@@ -1,14 +1,16 @@
 defmodule W2.Durations do
   @moduledoc """
-  Contains functions to turn discreet heartbeats
-  into continuous durations and other aggregations
+  Contains functions to aggregate durations
   """
 
   alias W2.Repo
   import Ecto.Query
 
-  # TODO from = div(from, 3600), to = div(to, 3600) + 1
+  def duration_table(interval) do
+    "durations_#{interval}"
+  end
 
+  # TODO from = div(from, 3600), to = div(to, 3600) + 1
   @doc """
   """
   def fetch_dashboard_data(from, to) do
@@ -36,13 +38,35 @@ defmodule W2.Durations do
 
   @doc """
   """
-  def fetch_timeline(from, to) do
-    "durations_300"
+  def fetch_timeline(from, to, interval \\ W2.interval()) do
+    duration_table(interval)
     |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
     # TODO
     |> where([d], d.start > ^time(from))
     |> where([d], d.start < ^time(to))
     |> group_by([d], [d.id, d.project])
+    |> Repo.all()
+  end
+
+  def fetch_project_branches(project, from, to, interval \\ W2.interval()) do
+    duration_table(interval)
+    |> select([d], [d.branch, sum(d.length)])
+    |> where(project: ^project)
+    |> where([d], d.start > ^time(from))
+    |> where([d], d.start < ^time(to))
+    |> group_by([d], d.branch)
+    |> order_by([d], desc: sum(d.length))
+    |> Repo.all()
+  end
+
+  def fetch_project_files(project, from, to, interval \\ W2.interval()) do
+    duration_table(interval)
+    |> select([d], [d.entity, sum(d.length)])
+    |> where(project: ^project)
+    |> where([d], d.start > ^time(from))
+    |> where([d], d.start < ^time(to))
+    |> group_by([d], d.entity)
+    |> order_by([d], desc: sum(d.length))
     |> Repo.all()
   end
 

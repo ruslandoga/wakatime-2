@@ -1,5 +1,5 @@
 defmodule W2.Ingester do
-  alias W2.{Repo, Ingester.Heartbeat}
+  alias W2.{Repo, Durations, Ingester.Heartbeat}
   import Ecto.Query
 
   # TODO
@@ -19,7 +19,7 @@ defmodule W2.Ingester do
   end
 
   def backfill_durations do
-    duration_table = duration_table(W2.interval())
+    duration_table = Durations.duration_table(W2.interval())
 
     time =
       duration_table
@@ -50,7 +50,7 @@ defmodule W2.Ingester do
   end
 
   defp maybe_upsert_duration(%{time: time} = heartbeat, interval) do
-    duration_table = duration_table(interval)
+    duration_table = Durations.duration_table(interval)
     prev_duration_id = prev_duration_id(duration_table) || 0
     prev_heartbeat = prev_heartbeat(time)
 
@@ -120,10 +120,6 @@ defmodule W2.Ingester do
     |> limit(1)
     |> select([d], d.id)
     |> Repo.one()
-  end
-
-  def duration_table(interval) do
-    "durations_#{interval}"
   end
 
   @doc false
