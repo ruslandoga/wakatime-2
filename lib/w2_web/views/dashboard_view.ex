@@ -52,33 +52,44 @@ defmodule W2Web.DashboardView do
     bucket_timeline(timeline, interval, [])
   end
 
-  defp bucket_timeline([[project, from, to] = segment | rest], interval, acc) do
+  defp bucket_timeline([[project, branch, from, to] = segment | rest], interval, acc) do
     if bucket(from, interval) == bucket(to, interval) do
       bucket_timeline(rest, interval, [segment | acc])
     else
-      bucket_timeline(rest, interval, split_segment(project, from, to, interval) ++ acc)
+      bucket_timeline(rest, interval, split_segment(project, branch, from, to, interval) ++ acc)
     end
   end
 
   defp bucket_timeline([], _interval, acc), do: acc
 
-  defp split_segment(project, from, to, interval) do
+  defp split_segment(project, branch, from, to, interval) do
     bucket_from = bucket(from, interval)
 
     if bucket_from == bucket(to, interval) do
-      [[project, from, to]]
+      [[project, branch, from, to]]
     else
       threshold = (bucket_from + 1) * interval
-      [[project, from, threshold] | split_segment(project, threshold, to, interval)]
+
+      [
+        [project, branch, from, threshold]
+        | split_segment(project, branch, threshold, to, interval)
+      ]
     end
   end
 
   def prepare_bucket_timeline_for_svg(timeline, from, interval) do
     begin = div(round(from), interval)
 
-    Enum.map(timeline, fn [project, from, to] ->
+    Enum.map(timeline, fn [project, branch, from, to] ->
       bucket = div(round(from), interval)
-      %{x: bucket - begin, y: (bucket + 1) * interval - to, project: project, height: to - from}
+
+      %{
+        x: bucket - begin,
+        y: (bucket + 1) * interval - to,
+        project: project,
+        branch: branch,
+        height: to - from
+      }
     end)
   end
 end

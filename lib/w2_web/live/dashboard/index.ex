@@ -4,6 +4,11 @@ defmodule W2Web.DashboardLive.Index do
   alias W2Web.DashboardView
 
   # hover -> highlight branch / file
+  # maybe just hide instead of filter + refetch
+  # custom scroll animation
+  # custom scroll indicator
+  # fix unknowns
+  # proper buckets
 
   @days 7
 
@@ -73,18 +78,22 @@ defmodule W2Web.DashboardLive.Index do
       )
 
     ~H"""
-    <svg viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
-    <%= for day_start <- @day_starts do %><.rect
-      x={div(day_start, @interval) - @from_div} y="0" width="1" height={@interval} color="#b91c1c80"
+    <svg id="timeline" phx-hook="RectHighlightHook" viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
+    <%= for day_start <- @day_starts do %><.separator
+      x={div(day_start, @interval) - @from_div} height={@interval}
     /><% end %><%= for rect <- @rects do %><.rect
-      x={rect.x} y={rect.y} width="1" height={rect.height} color={color(rect.project)}
+      x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)} project={rect.project} branch={rect.branch}
     /><% end %>
     </svg>
     """
   end
 
+  defp separator(assigns) do
+    ~H[<rect x={@x} y="0" width="1" height={@height} fill="#b91c1c80"/>]
+  end
+
   defp rect(assigns) do
-    ~H[<rect x={@x} y={@y} width={@width} height={@height} fill={@color} />]
+    ~H[<rect x={@x} y={@y} width="1" height={@height} fill={@color} data-project={@project} data-branch={@branch}/>]
   end
 
   defp branches_table(assigns) do
@@ -93,15 +102,15 @@ defmodule W2Web.DashboardLive.Index do
       <span>BRANCH</span>
       <span>TIME</span>
     </div>
-    <ul class="overflow-auto">
+    <ul id="branches-table" class="overflow-auto" phx-hook="BranchHighlightHook">
       <%= for [project, branch, total] <- @branches do %>
-      <li class="px-4 flex justify-between leading-6 odd:bg-red-200">
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200" data-project={project} data-branch={branch}>
         <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= branch || "?unknown?" %></span></span>
         <span><%= format_time(total) %></span>
       </li>
       <% end %>
       <%= for [branch, total] <- @branches do %>
-      <li class="px-4 flex justify-between leading-6 odd:bg-red-200">
+      <li class="px-4 flex justify-between leading-6 odd:bg-red-200" data-branch={branch}>
         <span class="truncate"><%= branch || "?unknown?" %></span>
         <span><%= format_time(total) %></span>
       </li>
@@ -139,9 +148,9 @@ defmodule W2Web.DashboardLive.Index do
       <span>PROJECT</span>
       <span>TIME</span>
     </div>
-    <ul class="overflow-auto">
+    <ul id="projects-table" class="overflow-auto" phx-hook="HighlightHook">
       <%= for [project, total] <- @projects do %>
-        <li>
+        <li data-project={project}>
           <%= live_patch to: Routes.dashboard_index_path(W2Web.Endpoint, :show, project || "unknown", @qs),
               style: "background-color:#{color(project)}",
               class: "px-4 flex justify-between leading-6 hover:font-bold" <> if(@project == project, do: " font-bold", else: "") do %>

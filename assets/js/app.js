@@ -11,7 +11,142 @@ let csrfToken = document
 
 // import uPlot from "uplot";
 
+function els() {
+  const rects = Array.from(document.querySelectorAll("rect[data-project]"));
+  const projects = Array.from(document.querySelectorAll("li[data-project]"));
+  const branches = Array.from(document.querySelectorAll("li[data-branch]"));
+  return { rects, projects, branches };
+}
+
+function onProjectHover() {
+  const { rects, projects, branches } = els();
+
+  projects.forEach((p) => {
+    const project = p.dataset.project;
+
+    const otherProjects = projects.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherBranches = branches.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherRects = rects.filter((el) => el.dataset.project != project);
+
+    p.onmouseenter = () => {
+      otherProjects.forEach((el) => (el.style.opacity = 0.2));
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
+      otherRects.forEach((el) => (el.style.opacity = 0.2));
+    };
+
+    p.onmouseleave = () => {
+      otherProjects.forEach((el) => (el.style.opacity = 1));
+      otherBranches.forEach((el) => (el.style.opacity = 1));
+      otherRects.forEach((el) => (el.style.opacity = 1));
+    };
+  });
+}
+
+function onBranchHover() {
+  const { rects, projects, branches } = els();
+
+  branches.forEach((b) => {
+    const { project, branch } = b.dataset;
+
+    const otherProjects = projects.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherBranches = branches.filter(
+      (el) => el.dataset.branch != branch || el.dataset.project != project
+    );
+
+    const otherRects = rects.filter(
+      (el) => el.dataset.branch != branch || el.dataset.project != project
+    );
+
+    b.onmouseenter = onmouseenter = () => {
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
+      otherProjects.forEach((el) => (el.style.opacity = 0.2));
+      otherRects.forEach((el) => (el.style.opacity = 0.2));
+    };
+
+    b.onmouseleave = () => {
+      otherBranches.forEach((el) => (el.style.opacity = 1));
+      otherProjects.forEach((el) => (el.style.opacity = 1));
+      otherRects.forEach((el) => (el.style.opacity = 1));
+    };
+  });
+}
+
+function onRectHover() {
+  const { rects, projects, branches } = els();
+
+  rects.forEach((r) => {
+    const { project, branch } = r.dataset;
+
+    const otherProjects = projects.filter(
+      (el) => el.dataset.project != project
+    );
+
+    const otherBranches = branches.filter(
+      (el) => el.dataset.branch != branch || el.dataset.project != project
+    );
+
+    const otherRects = rects.filter(
+      (el) => el.dataset.branch != branch || el.dataset.project != project
+    );
+
+    r.onmouseenter = onmouseenter = () => {
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
+      otherProjects.forEach((el) => (el.style.opacity = 0.2));
+      otherRects.forEach((el) => (el.style.opacity = 0.2));
+    };
+
+    r.onmouseleave = () => {
+      otherBranches.forEach((el) => (el.style.opacity = 1));
+      otherProjects.forEach((el) => (el.style.opacity = 1));
+      otherRects.forEach((el) => (el.style.opacity = 1));
+    };
+  });
+}
+
+const HighlightHook = {
+  mounted() {
+    onProjectHover();
+  },
+
+  updated() {
+    onProjectHover();
+  },
+};
+
+const BranchHighlightHook = {
+  mounted() {
+    onBranchHover();
+  },
+
+  updated() {
+    onBranchHover();
+  },
+};
+
+const RectHighlightHook = {
+  mounted() {
+    onRectHover();
+  },
+  updated() {
+    onRectHover();
+  },
+};
+
 let liveSocket = new LiveSocket("/live", Socket, {
+  hooks: {
+    HighlightHook,
+    BranchHighlightHook,
+    RectHighlightHook,
+  },
   params: { _csrf_token: csrfToken },
 });
 
@@ -28,13 +163,3 @@ liveSocket.connect();
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
-
-// Array.from(document.querySelectorAll("rect")).forEach((el) => {
-//   el.addEventListener("mouseenter", () => {
-//     el.style.fill = "red";
-//   });
-
-//   el.addEventListener("mouseleave", () => {
-//     el.style.fill = "black";
-//   });
-// });

@@ -17,10 +17,10 @@ defmodule W2.Durations do
   """
   def fetch_timeline(opts \\ []) do
     duration_table()
-    |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
+    |> select([d], [d.project, d.branch, min(d.start), min(d.start) + sum(d.length)])
     |> date_range(opts)
     |> project(opts)
-    |> group_by([d], [d.id, d.project])
+    |> group_by([d], [d.id, d.project, d.branch])
     |> Repo.all()
   end
 
