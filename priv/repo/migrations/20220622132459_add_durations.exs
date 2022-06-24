@@ -3,7 +3,7 @@ defmodule W2.Repo.Migrations.AddDurations do
 
   def change do
     interval = W2.interval()
-    duration_table = W2.Ingester.duration_table(interval)
+    duration_table = W2.Durations.duration_table(interval)
 
     create_if_not_exists table(duration_table, primary_key: false, options: "STRICT") do
       add :id, :integer, null: false
