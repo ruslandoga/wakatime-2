@@ -1,4 +1,7 @@
 defmodule W2.Ingester do
+  @moduledoc """
+  Contains functions to ingests wakatime heartbeats, process them into durations.
+  """
   alias W2.{Repo, Durations, Ingester.Heartbeat}
   import Ecto.Query
 

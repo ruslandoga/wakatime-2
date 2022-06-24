@@ -11,7 +11,9 @@ defmodule W2.Durations do
   end
 
   # TODO from = div(from, 3600), to = div(to, 3600) + 1
+
   @doc """
+  Aggregates durations into a project timeline, time spent in each project, and total time spent.
   """
   def fetch_dashboard_data(from, to) do
     timeline = fetch_timeline(from, to)
@@ -37,6 +39,7 @@ defmodule W2.Durations do
   defp project_totals_from_timeline([], acc), do: acc
 
   @doc """
+  Aggregates durations into a project timeline.
   """
   def fetch_timeline(from, to, interval \\ W2.interval()) do
     duration_table(interval)
@@ -48,6 +51,9 @@ defmodule W2.Durations do
     |> Repo.all()
   end
 
+  @doc """
+  Aggregates durations into time spent per branch in a project.
+  """
   def fetch_project_branches(project, from, to, interval \\ W2.interval()) do
     duration_table(interval)
     |> select([d], [d.branch, sum(d.length)])
@@ -59,6 +65,9 @@ defmodule W2.Durations do
     |> Repo.all()
   end
 
+  @doc """
+  Aggregates durations into time spent per file in a project.
+  """
   def fetch_project_files(project, from, to, interval \\ W2.interval()) do
     duration_table(interval)
     |> select([d], [d.entity, sum(d.length)])
@@ -73,6 +82,7 @@ defmodule W2.Durations do
   @h24 24 * 60 * 60
 
   @doc """
+  Returns GMT midnight timstampts.
   """
   def day_starts(from, to) do
     start = div(from, @h24) * @h24 + @h24
@@ -125,8 +135,7 @@ defmodule W2.Durations do
     div(round(time), interval)
   end
 
-  @doc """
-  """
+  @doc "Aggregates durations into 1-hour buckets"
   def fetch_bucket_data(from, to) do
     timeline = fetch_timeline(from, to)
     interval = interval(from, to)
