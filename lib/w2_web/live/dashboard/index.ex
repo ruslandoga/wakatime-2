@@ -3,12 +3,14 @@ defmodule W2Web.DashboardLive.Index do
   alias W2.{Durations, Ingester}
   alias W2Web.DashboardView
 
-  # hover -> highlight branch / file
+  # hover -> highlight file
+  # fix highlight on selection
   # maybe just hide instead of filter + refetch
   # custom scroll animation
   # custom scroll indicator
   # fix unknowns
   # proper buckets
+  # scroll to hovered branch / file / project
 
   @days 7
 

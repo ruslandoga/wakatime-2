@@ -18,8 +18,18 @@ defmodule W2.DurationsTest do
       to = ~U[2022-01-01 12:06:00Z]
 
       assert Durations.fetch_timeline(from: from, to: to) == [
-               ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])],
-               ["w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]
+               [
+                 "w1",
+                 "add-ingester",
+                 unix(~U[2022-01-01 12:04:12Z]),
+                 unix(~U[2022-01-01 12:04:19Z])
+               ],
+               [
+                 "w2",
+                 "add-ingester",
+                 unix(~U[2022-01-01 12:04:19Z]),
+                 unix(~U[2022-01-01 12:05:19Z])
+               ]
              ]
     end
 
@@ -36,8 +46,18 @@ defmodule W2.DurationsTest do
       to = ~U[2022-01-01 14:00:00Z]
 
       assert Durations.fetch_timeline(from: from, to: to) == [
-               ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
-               ["w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
+               [
+                 "w1",
+                 "add-ingester",
+                 unix(~U[2022-01-01 12:04:12Z]),
+                 unix(~U[2022-01-01 12:05:12Z])
+               ],
+               [
+                 "w1",
+                 "add-ingester",
+                 unix(~U[2022-01-01 13:04:18Z]),
+                 unix(~U[2022-01-01 13:05:19Z])
+               ]
              ]
     end
   end

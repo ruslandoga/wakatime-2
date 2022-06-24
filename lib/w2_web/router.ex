@@ -38,6 +38,8 @@ defmodule W2Web.Router do
     pipe_through :api
     get "/timeline", APIController, :timeline
     get "/projects", APIController, :timeline
+    # /branches
+    # /files
   end
 
   scope "/", W2Web do

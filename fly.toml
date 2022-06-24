@@ -5,7 +5,7 @@ kill_timeout = 5
 processes = []
 
 [build]
-  image = "ghcr.io/ruslandoga/wakatime-2:master"
+  image = "ghcr.io/ruslandoga/wakatime-2:pr-79"
 
 [env]
   DATABASE_PATH = "/data/w2.db"
