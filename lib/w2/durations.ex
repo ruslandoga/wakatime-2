@@ -16,11 +16,33 @@ defmodule W2.Durations do
   Aggregates durations into a project timeline.
   """
   def fetch_timeline(opts \\ []) do
-    duration_table()
-    |> select([d], [d.project, d.branch, d.entity, d.start, d.start + d.length])
-    |> date_range(opts)
-    |> project(opts)
-    |> Repo.all()
+    query =
+      duration_table()
+      |> date_range(opts)
+      |> project(opts)
+      |> branch(opts)
+      # TODO
+      |> where([d], not is_nil(d.project))
+
+    query =
+      case opts[:group] do
+        :branch ->
+          query
+          |> select([d], [d.project, d.branch, min(d.start), min(d.start) + sum(d.length)])
+          |> group_by([d], [d.id, d.project, d.branch])
+
+        :file ->
+          query
+          |> select([d], [d.project, d.branch, d.entity, d.start, d.start + d.length])
+          |> group_by([d], [d.id, d.project, d.branch, d.entity])
+
+        _default_is_project ->
+          query
+          |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
+          |> group_by([d], [d.id, d.project])
+      end
+
+    Repo.all(query)
   end
 
   @doc """
@@ -47,62 +69,43 @@ defmodule W2.Durations do
     if project = opts[:project], do: where(query, project: ^project), else: query
   end
 
+  defp branch(query, opts) do
+    if branch = opts[:branch], do: where(query, branch: ^branch), else: query
+  end
+
   @doc """
   Aggregates durations into time spent per branch.
   """
   def fetch_branches(opts \\ []) do
-    query =
-      duration_table()
-      |> date_range(opts)
-      |> project(opts)
-      |> order_by([d], desc: sum(d.length))
-      # TODO
-      |> where([d], not is_nil(d.branch))
-
-    # |> limit(50)
-
-    query =
-      if opts[:project] do
-        query
-        |> select([d], [d.branch, sum(d.length)])
-        |> group_by([d], d.branch)
-      else
-        query
-        |> select([d], [d.project, d.branch, sum(d.length)])
-        |> group_by([d], [d.project, d.branch])
-        |> where([d], not is_nil(d.project))
-      end
-
-    Repo.all(query)
+    duration_table()
+    |> date_range(opts)
+    |> project(opts)
+    |> order_by([d], desc: sum(d.length))
+    |> group_by([d], [d.project, d.branch])
+    |> select([d], [d.project, d.branch, sum(d.length)])
+    # TODO
+    |> where([d], not is_nil(d.branch))
+    |> where([d], not is_nil(d.project))
+    |> limit(50)
+    |> Repo.all()
   end
 
   @doc """
   Aggregates durations into time spent per file.
   """
   def fetch_files(opts \\ []) do
-    query =
-      duration_table()
-      |> date_range(opts)
-      |> project(opts)
-      |> order_by([d], desc: sum(d.length))
-      # TODO
-      |> where([d], not is_nil(d.entity))
-
-    # |> limit(100)
-
-    query =
-      if opts[:project] do
-        query
-        |> select([d], [d.entity, sum(d.length)])
-        |> group_by([d], d.entity)
-      else
-        query
-        |> select([d], [d.project, d.entity, sum(d.length)])
-        |> group_by([d], [d.project, d.entity])
-        |> where([d], not is_nil(d.project))
-      end
-
-    Repo.all(query)
+    duration_table()
+    |> date_range(opts)
+    |> project(opts)
+    |> branch(opts)
+    |> order_by([d], desc: sum(d.length))
+    |> group_by([d], [d.project, d.entity])
+    # TODO
+    |> where([d], not is_nil(d.entity))
+    |> where([d], not is_nil(d.project))
+    |> select([d], [d.project, d.entity, sum(d.length)])
+    |> limit(50)
+    |> Repo.all()
   end
 
   @h24 24 * 60 * 60

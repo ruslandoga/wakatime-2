@@ -39,15 +39,15 @@ function onProjectHover() {
     p.onmouseenter = () => {
       otherProjects.forEach((el) => (el.style.opacity = 0.2));
       otherRects.forEach((el) => (el.style.opacity = 0.2));
-      otherBranches.forEach((el) => (el.style.display = "none"));
-      otherFiles.forEach((el) => (el.style.display = "none"));
+      otherBranches.forEach((el) => (el.style.opacity = 0.2));
+      otherFiles.forEach((el) => (el.style.opacity = 0.2));
     };
 
     p.onmouseleave = () => {
       otherProjects.forEach((el) => (el.style.opacity = 1));
       otherRects.forEach((el) => (el.style.opacity = 1));
-      otherBranches.forEach((el) => (el.style.display = "flex"));
-      otherFiles.forEach((el) => (el.style.display = "flex"));
+      otherBranches.forEach((el) => (el.style.opacity = 1));
+      otherFiles.forEach((el) => (el.style.opacity = 1));
     };
   });
 }

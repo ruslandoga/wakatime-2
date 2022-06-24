@@ -17,8 +17,8 @@ defmodule W2Web.APIControllerTest do
         |> get("/api/timeline?from=2022-01-01T12:04:00&to=2022-01-01T12:06:00")
 
       assert json_response(conn, 200) == [
-               ["w1", "add-ingester", 1_641_038_652, 1_641_038_659],
-               ["w2", "add-ingester", 1_641_038_659, 1_641_038_719]
+               ["w1", 1_641_038_652, 1_641_038_659],
+               ["w2", 1_641_038_659, 1_641_038_719]
              ]
     end
   end
