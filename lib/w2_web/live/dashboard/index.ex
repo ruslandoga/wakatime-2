@@ -272,7 +272,21 @@ defmodule W2Web.DashboardLive.Index do
           end
       end)
 
-    page_title = [project, branch, format_time(total)] |> Enum.reject(&is_nil/1) |> Enum.join(" ")
+    page_title =
+      cond do
+        project && branch ->
+          [_project, _branch, time] =
+            Enum.find(branches, fn [_project, b, _time] -> b == branch end)
+
+          format_time(time) <> " " <> project <> "/" <> branch
+
+        project ->
+          [_project, time] = Enum.find(projects, fn [p, _time] -> p == project end)
+          format_time(time) <> " " <> project
+
+        true ->
+          format_time(total)
+      end
 
     socket
     |> assign(total: total)
