@@ -31,6 +31,11 @@ config :sentry,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]
 
+config :elixir, :time_zone_database, W2.TimeZoneDatabase
+
+# TODO don't hardcode, but read from env vars
+config :w2, timezone: "Europe/Moscow"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

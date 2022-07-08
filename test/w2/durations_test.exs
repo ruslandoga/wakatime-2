@@ -116,23 +116,24 @@ defmodule W2.DurationsTest do
            ]
   end
 
-  describe "day_starts/2" do
-    test "returns all 0th hours between two timestamps" do
-      assert Durations.day_starts(
-               _from = unix(~U[2022-01-01 12:03:12Z]),
-               _to = unix(~U[2022-01-12 23:53:12Z])
+  describe "midnights/3" do
+    test "returns all MSK 0th hours between two timestamps" do
+      assert Durations.midnights(
+               _from = unix(msk(~D[2022-01-01], ~T[12:03:12])),
+               _to = unix(msk(~D[2022-01-12], ~T[23:53:12])),
+               _utc_offset = Durations.msk().utc_offset
              ) == [
-               unix(~U[2022-01-02 00:00:00Z]),
-               unix(~U[2022-01-03 00:00:00Z]),
-               unix(~U[2022-01-04 00:00:00Z]),
-               unix(~U[2022-01-05 00:00:00Z]),
-               unix(~U[2022-01-06 00:00:00Z]),
-               unix(~U[2022-01-07 00:00:00Z]),
-               unix(~U[2022-01-08 00:00:00Z]),
-               unix(~U[2022-01-09 00:00:00Z]),
-               unix(~U[2022-01-10 00:00:00Z]),
-               unix(~U[2022-01-11 00:00:00Z]),
-               unix(~U[2022-01-12 00:00:00Z])
+               unix(msk(~D[2022-01-02], ~T[00:00:00])),
+               unix(msk(~D[2022-01-03], ~T[00:00:00])),
+               unix(msk(~D[2022-01-04], ~T[00:00:00])),
+               unix(msk(~D[2022-01-05], ~T[00:00:00])),
+               unix(msk(~D[2022-01-06], ~T[00:00:00])),
+               unix(msk(~D[2022-01-07], ~T[00:00:00])),
+               unix(msk(~D[2022-01-08], ~T[00:00:00])),
+               unix(msk(~D[2022-01-09], ~T[00:00:00])),
+               unix(msk(~D[2022-01-10], ~T[00:00:00])),
+               unix(msk(~D[2022-01-11], ~T[00:00:00])),
+               unix(msk(~D[2022-01-12], ~T[00:00:00]))
              ]
     end
   end

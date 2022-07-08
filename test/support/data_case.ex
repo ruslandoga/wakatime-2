@@ -78,6 +78,7 @@ defmodule W2.DataCase do
   end
 
   def unix(dt), do: DateTime.to_unix(dt)
+  def msk(date, time), do: DateTime.new!(date, time, "Europe/Moscow")
 
   def insert_heartbeats(overrides) do
     heartbeats = Enum.map(overrides, fn overrides -> heartbeat(overrides) end)
