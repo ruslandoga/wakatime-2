@@ -10,6 +10,17 @@ defmodule W2.Durations do
     "durations_#{interval}"
   end
 
+  @doc """
+  Translates naive datetime to MSK.
+
+      iex> msk(~N[2022-07-08 14:05:20.134483])
+      #DateTime<2022-07-08 17:05:20.134483+03:00 MSK Europe/Moscow>
+
+  """
+  def msk(naive \\ NaiveDateTime.utc_now()) do
+    naive |> DateTime.from_naive!("Etc/UTC") |> DateTime.shift_zone!("Europe/Moscow")
+  end
+
   # TODO from = div(from, 3600), to = div(to, 3600) + 1
 
   @doc """
@@ -111,15 +122,15 @@ defmodule W2.Durations do
   @h24 24 * 60 * 60
 
   @doc """
-  Returns GMT midnight timstampts.
+  Returns unix timstampts for MSK midnights within the date range.
   """
-  def day_starts(from, to) do
-    start = div(from, @h24) * @h24 + @h24
-    _day_starts(start, to)
+  def midnights(from, to, utc_offset) do
+    start = div(from, @h24) * @h24 + @h24 - utc_offset
+    _midnights(start, to)
   end
 
-  defp _day_starts(date, to) when date < to, do: [date | _day_starts(date + @h24, to)]
-  defp _day_starts(_date, _to), do: []
+  defp _midnights(date, to) when date < to, do: [date | _midnights(date + @h24, to)]
+  defp _midnights(_date, _to), do: []
 
   @hour_in_seconds 3600
   # @day_in_seconds 24 * @hour_in_seconds

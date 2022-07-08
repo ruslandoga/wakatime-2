@@ -15,7 +15,7 @@ defmodule W2Web.DashboardLive.Index do
 
   @impl true
   def render(assigns) do
-    {from, to} = date_range(assigns)
+    {from, to} = msk_date_range(assigns)
 
     assigns =
       assign(assigns,
@@ -54,9 +54,11 @@ defmodule W2Web.DashboardLive.Index do
 
   # TODO div(...)
   defp bucket_timeline(assigns) do
-    {from, to} = date_range(assigns)
-    to = to |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
-    from = from |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+    {from, to} = msk_date_range(assigns)
+    # TODO
+    utc_offset = from.utc_offset
+    to = DateTime.to_unix(to)
+    from = DateTime.to_unix(from)
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 
@@ -69,15 +71,15 @@ defmodule W2Web.DashboardLive.Index do
       assign(assigns,
         interval: interval,
         rects: rects,
-        day_starts: Durations.day_starts(from, to),
+        midnights: Durations.midnights(from, to, utc_offset),
         from_div: from_div,
         h_count: div(to, interval) - div(from, interval) + 1
       )
 
     ~H"""
     <svg id="timeline" phx-hook="RectHighlightHook" viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
-    <%= for day_start <- @day_starts do %><.separator
-      x={div(day_start, @interval) - @from_div} height={@interval}
+    <%= for midnight <- @midnights do %><.separator
+      x={div(midnight, @interval) - @from_div} height={@interval}
     /><% end %><%= for rect <- @rects do %><.rect
       x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)} project={rect[:project]} branch={rect[:branch]}
     /><% end %>
@@ -282,7 +284,7 @@ defmodule W2Web.DashboardLive.Index do
 
   # TODO refresh from/to
   defp fetch_data(%{assigns: assigns} = socket) do
-    {from, to} = date_range(assigns)
+    {from, to} = msk_date_range(assigns)
     project = assigns[:project]
     branch = assigns[:branch]
 
@@ -314,13 +316,13 @@ defmodule W2Web.DashboardLive.Index do
     |> assign(page_title: page_title)
   end
 
-  defp date_range(assigns) do
-    to = naive(assigns[:to], :up) || NaiveDateTime.utc_now()
-    from = naive(assigns[:from], :down) || add_days(to, -@days)
+  defp msk_date_range(assigns) do
+    to = msk(assigns[:to], :up) || Durations.msk()
+    from = msk(assigns[:from], :down) || add_days(to, -@days)
     {from, to}
   end
 
-  defp naive(date, direction) do
+  defp msk(date, direction) do
     if date do
       time =
         case direction do
@@ -328,7 +330,7 @@ defmodule W2Web.DashboardLive.Index do
           :down -> ~T[00:00:00]
         end
 
-      NaiveDateTime.new!(date, time)
+      DateTime.new!(date, time, "Europe/Moscow")
     end
   end
 
@@ -358,13 +360,13 @@ defmodule W2Web.DashboardLive.Index do
     Enum.at(@colors, :erlang.phash2(project, @colors_count))
   end
 
-  @spec add_days(NaiveDateTime.t(), integer) :: NaiveDateTime.t()
-  defp add_days(naive, days) do
-    time = Time.new!(naive.hour, naive.minute, naive.second)
+  @spec add_days(DateTime.t(), integer) :: DateTime.t()
+  defp add_days(dt, days) do
+    time = Time.new!(dt.hour, dt.minute, dt.second)
 
-    Date.new!(naive.year, naive.month, naive.day)
+    Date.new!(dt.year, dt.month, dt.day)
     |> Date.add(days)
-    |> NaiveDateTime.new!(time)
+    |> DateTime.new!(time, dt.time_zone)
   end
 
   defp format_time(seconds) do
