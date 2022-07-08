@@ -32,6 +32,7 @@ defmodule W2.Durations do
       |> date_range(opts)
       |> project(opts)
       |> branch(opts)
+      |> file(opts)
       # TODO
       |> where([d], not is_nil(d.project))
 
@@ -39,17 +40,32 @@ defmodule W2.Durations do
       case opts[:group] do
         :branch ->
           query
-          |> select([d], [d.project, d.branch, min(d.start), min(d.start) + sum(d.length)])
+          |> select([d], [
+            d.project,
+            d.branch,
+            type(min(d.start), :integer),
+            type(min(d.start) + sum(d.length), :integer)
+          ])
           |> group_by([d], [d.id, d.project, d.branch])
 
         :file ->
           query
-          |> select([d], [d.project, d.branch, d.entity, d.start, d.start + d.length])
+          |> select([d], [
+            d.project,
+            d.branch,
+            d.entity,
+            type(d.start, :integer),
+            type(d.start + d.length, :integer)
+          ])
           |> group_by([d], [d.id, d.project, d.branch, d.entity])
 
         _default_is_project ->
           query
-          |> select([d], [d.project, min(d.start), min(d.start) + sum(d.length)])
+          |> select([d], [
+            d.project,
+            type(min(d.start), :integer),
+            type(min(d.start) + sum(d.length), :integer)
+          ])
           |> group_by([d], [d.id, d.project])
       end
 
@@ -82,6 +98,15 @@ defmodule W2.Durations do
 
   defp branch(query, opts) do
     if branch = opts[:branch], do: where(query, branch: ^branch), else: query
+  end
+
+  defp file(query, opts) do
+    if file = opts[:file] do
+      pattern = "%" <> file
+      where(query, [d], like(d.entity, ^pattern))
+    else
+      query
+    end
   end
 
   @doc """

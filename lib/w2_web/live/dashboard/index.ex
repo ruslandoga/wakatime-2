@@ -14,18 +14,79 @@ defmodule W2Web.DashboardLive.Index do
   @days 7
 
   @impl true
+  def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
+    end
+
+    {:ok, socket, temporary_assigns: [files: [], branches: [], projects: [], timeline: []]}
+  end
+
+  @impl true
   def render(assigns) do
     {from, to} = msk_date_range(assigns)
 
+    %{
+      project: selected_project,
+      branch: selected_branch,
+      file: selected_file,
+      projects: projects,
+      branches: branches,
+      files: files
+    } = assigns
+
+    qs = qs(assigns, [])
+    branch_qs = Keyword.delete(qs, :file)
+    project_qs = Keyword.delete(branch_qs, :branch)
+
+    # TODO
+    project_rows =
+      Enum.map(projects, fn [project, _time] = row ->
+        dimmed = if selected_project, do: selected_project != project
+
+        qs =
+          if selected_project == project,
+            do: Keyword.delete(project_qs, :project),
+            else: Keyword.put(project_qs, :project, project)
+
+        %{value: row, dimmed: dimmed, qs: qs}
+      end)
+
+    branch_rows =
+      Enum.map(branches, fn [project, branch, _time] = row ->
+        dimmed = if selected_branch, do: selected_branch != branch
+
+        qs =
+          if selected_branch == branch,
+            do: Keyword.delete(branch_qs, :branch),
+            else: branch_qs |> Keyword.put(:project, project) |> Keyword.put(:branch, branch)
+
+        %{value: row, dimmed: dimmed, qs: qs}
+      end)
+
+    file_rows =
+      Enum.map(files, fn [project, file, _time] = row ->
+        dimmed = if selected_file, do: selected_file != file
+
+        qs =
+          if selected_file == file,
+            do: Keyword.delete(qs, :file),
+            else: qs |> Keyword.put(:project, project) |> Keyword.put(:file, file)
+
+        %{value: row, dimmed: dimmed, qs: qs}
+      end)
+
     assigns =
       assign(assigns,
-        qs: qs(assigns, []),
-        from: NaiveDateTime.to_date(from),
-        to: NaiveDateTime.to_date(to)
+        project_rows: project_rows,
+        branch_rows: branch_rows,
+        file_rows: file_rows,
+        from: DateTime.to_date(from),
+        to: DateTime.to_date(to)
       )
 
     ~H"""
-    <div class="h-screen w-full bg-red-100 font-mono overflow-hidden">
+    <div class="h-screen w-full font-mono overflow-hidden">
       <div class="h-1/2">
         <.bucket_timeline from={@from} to={@to} timeline={@timeline} />
       </div>
@@ -33,20 +94,47 @@ defmodule W2Web.DashboardLive.Index do
         <div class="w-1/3 flex flex-col">
           <div class="bg-neutral-600 px-4 flex justify-between">
             <form class="inline-block text-blue-200" phx-change="date-range" phx-submit="date-range">
-              <input type="date" id="from-date" name="from_date" value={@from} class="bg-neutral-600" phx-debounce="300"/>
+              <input type="date" id="from-date" name="from_date" value={@from} class="bg-neutral-600 h-6" phx-debounce="300"/>
               —
-              <input type="date" id="to-date" name="to_date" value={@to} class="bg-neutral-600" phx-debounce="300"/>
+              <input type="date" id="to-date" name="to_date" value={@to} class="bg-neutral-600 h-6" phx-debounce="300"/>
             </form>
             <span class="text-white">Σ<%= format_time(@total) %></span>
           </div>
-          <.projects_table
-            total={@total}
-            projects={@projects}
-            project={@project}
-            qs={@qs} />
+          <.time_table
+            let={%{value: [project, time], dimmed: dimmed, qs: qs}}
+            rows={@project_rows}
+            title="PROJECT"
+            extra_header_class="bg-black text-white"><.time_table_row
+              style={"background-color:" <> color(project)}
+              time={time}
+              dimmed={dimmed} qs={qs}><%= project %></.time_table_row></.time_table>
         </div>
-        <div class="w-1/3 flex flex-col"><.branches_table branches={@branches} branch={@branch} qs={@qs}/></div>
-        <div class="w-1/3 flex flex-col"><.files_table files={@files}/></div>
+        <div class="w-1/3 flex flex-col">
+          <.time_table
+            let={%{value: [project, branch, time], dimmed: dimmed, qs: qs}}
+            rows={@branch_rows}
+            title="BRANCH"
+            extra_header_class="bg-red-400"><.time_table_row
+              class="odd:bg-red-200"
+              time={time}
+              dimmed={dimmed}
+              qs={qs}><.prefix_span
+                prefix={project}
+                value={branch} /></.time_table_row></.time_table>
+        </div>
+        <div class="w-1/3 flex flex-col bg-blue-50">
+          <.time_table
+            let={%{value: [project, file, time], dimmed: dimmed, qs: qs}}
+            rows={@file_rows}
+            title="FILE"
+            extra_header_class="bg-blue-400"><.time_table_row
+              class="odd:bg-blue-100"
+              time={time}
+              dimmed={dimmed}
+              qs={qs}><.prefix_span
+                prefix={project}
+                value={file} /></.time_table_row></.time_table>
+        </div>
       </div>
     </div>
     """
@@ -77,11 +165,11 @@ defmodule W2Web.DashboardLive.Index do
       )
 
     ~H"""
-    <svg id="timeline" phx-hook="RectHighlightHook" viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
+    <svg viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
     <%= for midnight <- @midnights do %><.separator
       x={div(midnight, @interval) - @from_div} height={@interval}
     /><% end %><%= for rect <- @rects do %><.rect
-      x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)} project={rect[:project]} branch={rect[:branch]}
+      x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)}
     /><% end %>
     </svg>
     """
@@ -92,132 +180,43 @@ defmodule W2Web.DashboardLive.Index do
   end
 
   defp rect(assigns) do
-    ~H[<rect x={@x} y={@y} width="1" height={@height} fill={@color} data-project={@project} data-branch={@branch}/>]
+    ~H[<rect x={@x} y={@y} width="1" height={@height} fill={@color}/>]
   end
 
-  defp branches_table(assigns) do
+  defp time_table(assigns) do
     ~H"""
-    <div class="flex justify-between bg-red-400 px-4">
-      <span>BRANCH</span>
+    <div class={"flex justify-between px-4 " <> @extra_header_class}>
+      <span><%= @title %></span>
       <span>TIME</span>
     </div>
-    <ul id="branches-table" class="overflow-auto" phx-hook="BranchHighlightHook">
-      <%= for [project, branch, total] <- @branches do %><.branch_row
-        project={project} branch={branch} selected={@branch} total={total} qs={@qs}
-      /><% end %>
+    <ul class="overflow-auto">
+      <%= for row <- @rows do %><%= render_slot(@inner_block, row) %><% end %>
     </ul>
     """
   end
 
-  defp branch_row(%{branch: branch, selected: selected, qs: qs} = assigns) do
-    qs =
-      if branch == selected do
-        Keyword.delete(qs, :branch)
-      else
-        Keyword.put(qs, :branch, branch)
-      end
+  defp link(assigns) do
+    ~H"""
+    <a class="px-4 flex justify-between leading-6 transition" data-phx-link="patch" data-phx-link-state="push" href={@href}><%= render_slot(@inner_block) %></a>
+    """
+  end
 
+  defp time_table_row(%{dimmed: dimmed, qs: qs} = assigns) do
+    assigns = assign_new(assigns, :class, fn -> "" end)
+    assigns = assign_new(assigns, :style, fn -> nil end)
+    class = if dimmed, do: assigns.class <> " opacity-20", else: assigns.class
     path = Routes.dashboard_index_path(W2Web.Endpoint, :index, qs)
-    class = "px-4 flex justify-between leading-6 transition"
-
-    class =
-      if selected do
-        if branch == selected do
-          # <> " font-bold"
-          class
-        else
-          class <> " opacity-20"
-        end
-      else
-        class
-      end
-
     assigns = assign(assigns, class: class, path: path)
 
     ~H"""
-    <li class="odd:bg-red-200" data-project={@project} data-branch={@branch}>
-      <%= live_patch to: @path, class: @class do %>
-        <span class="truncate"><span class="opacity-50"><%= @project %>/</span><span><%= @branch || "?unknown?" %></span></span>
-        <span><%= format_time(@total) %></span>
-      <% end %>
-    </li>
+    <li class={@class} style={@style}><.link href={@path}><span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span></.link></li>
     """
   end
 
-  defp files_table(assigns) do
+  defp prefix_span(assigns) do
     ~H"""
-    <div class="flex justify-between bg-blue-400 px-4">
-      <span>FILE</span>
-      <span>TIME</span>
-    </div>
-      <ul id="files-table" class="overflow-auto" phx-hook="FileHighlightHook">
-      <%= for [project, file, total] <- @files do %>
-        <li class="px-4 flex justify-between leading-6 even:bg-blue-50 odd:bg-blue-100 transition" data-project={project} data-file={file}>
-          <span class="truncate"><span class="opacity-50"><%= project %>/</span><span><%= file || "?unknown?" %></span></span>
-          <span><%= format_time(total) %></span>
-        </li>
-      <% end %>
-    </ul>
+    <span class="opacity-50"><%= @prefix %>/</span><span><%= @value %></span>
     """
-  end
-
-  defp projects_table(assigns) do
-    assigns = assign(assigns, :qs, Keyword.delete(assigns.qs, :branch))
-
-    ~H"""
-    <div class="flex justify-between bg-black text-white px-4">
-      <span>PROJECT</span>
-      <span>TIME</span>
-    </div>
-    <ul id="projects-table" class="overflow-auto" phx-hook="ProjectHighlightHook">
-      <%= for [project, total] <- @projects do %><.project_row
-        project={project} selected={@project} total={total} qs={@qs}
-      /><% end %>
-    </ul>
-    """
-  end
-
-  defp project_row(%{project: project, selected: selected, qs: qs} = assigns) do
-    qs =
-      if project == selected do
-        Keyword.delete(qs, :project)
-      else
-        Keyword.put(qs, :project, project)
-      end
-
-    path = Routes.dashboard_index_path(W2Web.Endpoint, :index, qs)
-    class = "px-4 flex justify-between leading-6 hover:font-bold transition"
-
-    class =
-      if selected do
-        if project == selected do
-          class <> " font-bold"
-        else
-          class <> " opacity-20"
-        end
-      else
-        class
-      end
-
-    assigns = assign(assigns, class: class, path: path)
-
-    ~H"""
-    <li data-project={@project}>
-      <%= live_patch to: @path, style: "background-color:#{color(@project)}", class: @class do %>
-        <span class="truncate"><%= @project || "?unknown?" %></span>
-        <span><%= format_time(@total) %></span>
-      <% end %>
-    </li>
-    """
-  end
-
-  @impl true
-  def mount(_params, _session, socket) do
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
-    end
-
-    {:ok, socket}
   end
 
   @impl true
@@ -226,47 +225,12 @@ defmodule W2Web.DashboardLive.Index do
       socket
       |> assign(project: params["project"])
       |> assign(branch: params["branch"])
+      |> assign(file: params["file"])
       |> assign(from: maybe_date(params["from"]))
       |> assign(to: maybe_date(params["to"]))
       |> fetch_data()
 
     {:noreply, socket}
-  end
-
-  defp maybe_date(value) do
-    if value do
-      case Date.from_iso8601(value) do
-        {:ok, date} -> date
-        _ -> nil
-      end
-    end
-  end
-
-  # TODO
-  defp qs(assigns, overrides) do
-    qs = []
-
-    qs =
-      if to = overrides[:to] || assigns[:to],
-        do: Keyword.put(qs, :to, Date.to_iso8601(to)),
-        else: qs
-
-    qs =
-      if from = overrides[:from] || assigns[:from],
-        do: Keyword.put(qs, :from, Date.to_iso8601(from)),
-        else: qs
-
-    qs =
-      if project = overrides[:project] || assigns[:project],
-        do: Keyword.put(qs, :project, project),
-        else: qs
-
-    qs =
-      if branch = overrides[:branch] || assigns[:branch],
-        do: Keyword.put(qs, :branch, branch),
-        else: qs
-
-    qs
   end
 
   @impl true
@@ -287,8 +251,11 @@ defmodule W2Web.DashboardLive.Index do
     {from, to} = msk_date_range(assigns)
     project = assigns[:project]
     branch = assigns[:branch]
+    file = assigns[:file]
 
-    timeline = Durations.fetch_timeline(project: project, branch: branch, from: from, to: to)
+    timeline =
+      Durations.fetch_timeline(project: project, branch: branch, file: file, from: from, to: to)
+
     projects = Durations.fetch_projects(from: from, to: to)
     branches = Durations.fetch_branches(project: project, from: from, to: to)
     total = Enum.reduce(projects, 0, fn [_project, total], acc -> acc + total end)
@@ -341,23 +308,9 @@ defmodule W2Web.DashboardLive.Index do
 
   defp remove_file_project_prefix([], _project), do: nil
 
-  # TODO
-  @colors [
-    "#fbbf24",
-    "#4ade80",
-    "#06b6d4",
-    "#f87171",
-    "#60a5fa",
-    "#facc15",
-    "#ec4899",
-    "#0284c7",
-    "#a3a3a3"
-  ]
-
-  @colors_count length(@colors)
-
   defp color(project) do
-    Enum.at(@colors, :erlang.phash2(project, @colors_count))
+    hue = :erlang.phash2(project, 360)
+    "hsl(#{hue},40%,50%)"
   end
 
   @spec add_days(DateTime.t(), integer) :: DateTime.t()
@@ -376,5 +329,29 @@ defmodule W2Web.DashboardLive.Index do
     minutes = String.pad_leading(to_string(div(rem, 60)), 2, "0")
     seconds = String.pad_leading(to_string(rem(rem, 60)), 2, "0")
     hours <> ":" <> minutes <> ":" <> seconds
+  end
+
+  defp maybe_date(value) do
+    if value do
+      case Date.from_iso8601(value) do
+        {:ok, date} -> date
+        _ -> nil
+      end
+    end
+  end
+
+  defp qs(assigns, overrides) do
+    []
+    |> maybe_put_qs(assigns, overrides, :to, &Date.to_iso8601/1)
+    |> maybe_put_qs(assigns, overrides, :from, &Date.to_iso8601/1)
+    |> maybe_put_qs(assigns, overrides, :project)
+    |> maybe_put_qs(assigns, overrides, :branch)
+    |> maybe_put_qs(assigns, overrides, :file)
+  end
+
+  defp maybe_put_qs(qs, assigns, overrides, field, transform \\ &Function.identity/1) do
+    if value = overrides[field] || assigns[field],
+      do: Keyword.put(qs, field, transform.(value)),
+      else: qs
   end
 end
