@@ -137,4 +137,59 @@ defmodule W2.DurationsTest do
              ]
     end
   end
+
+  describe "fetch_bucket_data/2" do
+    test "project switch" do
+      insert_heartbeats([
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
+      ])
+
+      from = ~U[2022-01-01 12:04:00Z]
+      to = ~U[2022-01-01 12:06:00Z]
+
+      assert Durations.fetch_bucket_data(from, to) == [
+               [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 7, "w2" => 60}]
+             ]
+    end
+
+    test "hour change" do
+      insert_heartbeats([
+        %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:02:14Z]), "project" => "w1"}
+      ])
+
+      from = ~U[2022-01-01 12:00:00Z]
+      to = ~U[2022-01-01 14:00:00Z]
+
+      assert Durations.fetch_bucket_data(from, to) ==
+               [
+                 [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 108}],
+                 [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 134}]
+               ]
+    end
+
+    test "duration break" do
+      insert_heartbeats([
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
+      ])
+
+      from = ~U[2022-01-01 12:00:00Z]
+      to = ~U[2022-01-01 14:00:00Z]
+
+      assert Durations.fetch_bucket_data(from, to) ==
+               [
+                 [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 60}],
+                 [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 61}]
+               ]
+    end
+  end
 end

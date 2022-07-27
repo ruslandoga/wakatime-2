@@ -197,7 +197,7 @@ defmodule W2.Durations do
 
   @compile {:inline, bucket: 2}
   def bucket(time, interval) do
-    div(round(time), interval)
+    div(time, interval)
   end
 
   @doc "Aggregates durations into 1-hour buckets"
@@ -238,7 +238,9 @@ defmodule W2.Durations do
         bucket = bucket(from, interval)
 
         outer_acc =
-          if inner_acc, do: [[bucket * interval, inner_acc] | outer_acc], else: outer_acc
+          if inner_acc,
+            do: [[prev_bucket * interval, inner_acc] | outer_acc],
+            else: outer_acc
 
         inner_acc = %{project => to - from}
         bucket_totals2(rest, bucket, interval, inner_acc, outer_acc)
@@ -248,7 +250,9 @@ defmodule W2.Durations do
         clamped_to = (bucket + 1) * interval
 
         outer_acc =
-          if inner_acc, do: [[bucket * interval, inner_acc] | outer_acc], else: outer_acc
+          if inner_acc,
+            do: [[prev_bucket * interval, inner_acc] | outer_acc],
+            else: outer_acc
 
         inner_acc = %{project => clamped_to - from}
         bucket_totals2([[project, clamped_to, to] | rest], bucket, interval, inner_acc, outer_acc)
