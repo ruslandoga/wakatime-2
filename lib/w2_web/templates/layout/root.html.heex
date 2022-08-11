@@ -8,6 +8,7 @@
     <%= live_title_tag assigns[:page_title] || "wako" %>
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
+    <script defer data-domain="stats.copycat.fun" src="https://who.copycat.fun/js/plausible.js"></script>
   </head>
   <body class="bg-red-100">
     <%= @inner_content %>
