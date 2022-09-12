@@ -30,6 +30,10 @@ config :w2, interval: 300
 if config_env() == :prod do
   config :w2, api_key: System.fetch_env!("API_KEY")
 
+  config :w2, :dashboard,
+    username: System.fetch_env!("DASHBOARD_USERNAME"),
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
+
   config :logger, level: :info
 
   if dns = System.get_env("SENTRY_DSN") do
@@ -89,10 +93,18 @@ if config_env() == :dev do
   config :w2, W2.Repo,
     database: Path.expand("../w2_dev.db", Path.dirname(__ENV__.file)),
     backfill: true
+
+  config :w2, :dashboard,
+    username: "neo",
+    password: "one"
 end
 
 if config_env() == :test do
   config :w2, api_key: "406fe41f-6d69-4183-a4cc-121e0c524c2b"
+
+  config :w2, :dashboard,
+    username: "neo",
+    password: "one"
 end
 
 if config_env() == :bench do
