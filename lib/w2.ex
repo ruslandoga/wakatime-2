@@ -13,6 +13,10 @@ defmodule W2 do
     Application.fetch_env!(@app, :api_key)
   end
 
+  def dashboard_auth_opts do
+    Application.fetch_env!(@app, :dashboard)
+  end
+
   def interval do
     Application.fetch_env!(@app, :interval)
   end

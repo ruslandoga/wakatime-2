@@ -1,5 +1,6 @@
 defmodule W2Web.Router do
   use W2Web, :router
+  import W2Web.Auth
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -9,10 +10,6 @@ defmodule W2Web.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-  end
-
-  pipeline :auth do
-    plug W2Web.Plugs.Auth
   end
 
   scope "/", W2Web do
@@ -25,12 +22,17 @@ defmodule W2Web.Router do
   end
 
   scope "/", W2Web do
-    pipe_through [:api, :auth]
+    pipe_through [:api, :wakatime_auth]
 
     post "/heartbeats", HeartbeatController, :create
     post "/heartbeats/v1/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/plugins/errors", HeartbeatController, :ignore
+  end
+
+  scope "/", W2Web do
+    pipe_through [:browser, :dashboard_auth]
+    live "/timer", DashboardLive.Timer, :index
   end
 
   # TODO /api?
