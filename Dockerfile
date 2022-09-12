@@ -8,7 +8,7 @@ FROM litestream/litestream:0.3.8 AS litestream
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.13.4-erlang-25.0.4-alpine-3.16.1 as build
+FROM hexpm/elixir:1.14.0-erlang-25.0.4-alpine-3.16.1 as build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm
