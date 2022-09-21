@@ -195,9 +195,9 @@ defmodule W2Web.DashboardLive.Index do
     """
   end
 
-  defp link(assigns) do
+  defp _link(assigns) do
     ~H"""
-    <a class="px-4 flex justify-between leading-6 transition" data-phx-link="patch" data-phx-link-state="push" href={@href}><%= render_slot(@inner_block) %></a>
+    <.link patch={@href} class="px-4 flex justify-between leading-6 transition"><%= render_slot(@inner_block) %></.link>
     """
   end
 
@@ -209,7 +209,7 @@ defmodule W2Web.DashboardLive.Index do
     assigns = assign(assigns, class: class, path: path)
 
     ~H"""
-    <li class={@class} style={@style}><.link href={@path}><span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span></.link></li>
+    <li class={@class} style={@style}><._link href={@path}><span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span></._link></li>
     """
   end
 
