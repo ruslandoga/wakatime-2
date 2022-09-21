@@ -6,7 +6,8 @@ defmodule W2.Sentry.FinchHTTPClient do
 
   @impl true
   def child_spec do
-    Supervisor.child_spec({Finch, name: @finch}, [])
+    spec = {Finch, name: @finch, pools: %{default: [protocol: :http2]}}
+    Supervisor.child_spec(spec, [])
   end
 
   @impl true
