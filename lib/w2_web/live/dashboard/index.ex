@@ -35,8 +35,8 @@ defmodule W2Web.DashboardLive.Index do
       files: files
     } = assigns
 
-    qs = qs(assigns, [])
-    branch_qs = Keyword.delete(qs, :file)
+    base_qs = qs(assigns, [])
+    branch_qs = Keyword.delete(base_qs, :file)
     project_qs = Keyword.delete(branch_qs, :branch)
 
     # TODO
@@ -70,8 +70,8 @@ defmodule W2Web.DashboardLive.Index do
 
         qs =
           if selected_file == file,
-            do: Keyword.delete(qs, :file),
-            else: qs |> Keyword.put(:project, project) |> Keyword.put(:file, file)
+            do: Keyword.delete(base_qs, :file),
+            else: base_qs |> Keyword.put(:project, project) |> Keyword.put(:file, file)
 
         %{value: row, dimmed: dimmed, qs: qs}
       end)
