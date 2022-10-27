@@ -45,7 +45,7 @@ defmodule W2Web do
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {W2Web.LayoutView, "live.html"}
+        layout: {W2Web.LayoutView, :live}
 
       unquote(view_helpers())
     end
