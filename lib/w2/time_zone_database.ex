@@ -4,7 +4,10 @@ defmodule W2.TimeZoneDatabase do
 
   tzs = %{
     "Etc/UTC" => %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"},
-    "Europe/Moscow" => %{std_offset: 0, utc_offset: 10800, zone_abbr: "MSK"}
+    "Europe/Moscow" => %{std_offset: 0, utc_offset: 10800, zone_abbr: "MSK"},
+    "Asia/Tbilisi" => %{std_offset: 0, utc_offset: 14400, zone_abbr: "GET"},
+    "Asia/Bangkok" => %{std_offset: 0, utc_offset: 25200, zone_abbr: "ICT"},
+    "Asia/Kuala_Lumpur" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "MYT"}
   }
 
   @impl true

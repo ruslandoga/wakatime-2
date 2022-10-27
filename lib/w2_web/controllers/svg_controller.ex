@@ -28,7 +28,7 @@ defmodule W2Web.SVGController do
       bars: bars,
       from_div: from_div,
       interval: interval,
-      day_starts: Durations.midnights(from, to, Durations.msk().utc_offset),
+      day_starts: Durations.midnights(from, to),
       background: params["b"]
     )
   end
@@ -57,7 +57,7 @@ defmodule W2Web.SVGController do
       rects: rects,
       from_div: from_div,
       interval: interval,
-      day_starts: Durations.midnights(from, to, Durations.msk().utc_offset),
+      day_starts: Durations.midnights(from, to),
       background: params["b"]
     )
   end

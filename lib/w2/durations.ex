@@ -11,14 +11,40 @@ defmodule W2.Durations do
   end
 
   @doc """
-  Translates naive datetime to MSK.
+  Translates naive datetime to local timezone depending on the date and relocations.
 
-      iex> msk(~N[2022-07-08 14:05:20.134483])
+      iex> relocations = [{~D[2002-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}]
+      iex> to_local(~N[2022-07-08 14:05:20.134483], relocations)
       #DateTime<2022-07-08 17:05:20.134483+03:00 MSK Europe/Moscow>
 
+      iex> relocations = [{~D[2002-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
+      iex> to_local(~N[2022-08-29 14:05:20.134483], relocations)
+      #DateTime<2022-08-29 18:05:20.134483+04:00 GET Asia/Tbilisi>
+
+      iex> relocations = [{~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
+      iex> to_local(~N[2022-10-09 14:05:20.134483], relocations)
+      #DateTime<2022-10-09 21:05:20.134483+07:00 ICT Asia/Bangkok>
+
   """
-  def msk(naive \\ NaiveDateTime.utc_now()) do
-    naive |> DateTime.from_naive!("Etc/UTC") |> DateTime.shift_zone!("Europe/Moscow")
+  def to_local(
+        naive \\ NaiveDateTime.utc_now(),
+        relocations \\ Application.fetch_env!(:w2, :relocations)
+      ) do
+    naive_date = NaiveDateTime.to_date(naive)
+    tz = local_tz(naive_date, relocations)
+    naive |> DateTime.from_naive!("Etc/UTC") |> DateTime.shift_zone!(tz)
+  end
+
+  def local_tz(date, relocations \\ Application.fetch_env!(:w2, :relocations))
+
+  def local_tz(date, [{d1, tz} | [{d2, _} | _] = rest]) do
+    fits? = Date.compare(date, d1) in [:gt, :eq] and Date.compare(date, d2) in [:lt, :eq]
+    if fits?, do: tz, else: local_tz(date, rest)
+  end
+
+  def local_tz(date, [{d, tz}]) do
+    fits? = Date.compare(date, d) in [:gt, :eq]
+    if fits?, do: tz, else: raise("Couldn't find local tz for #{inspect(date)}")
   end
 
   # TODO from = div(from, 3600), to = div(to, 3600) + 1
@@ -147,15 +173,43 @@ defmodule W2.Durations do
   @h24 24 * 60 * 60
 
   @doc """
-  Returns unix timstampts for MSK midnights within the date range.
+  Returns unix timstampts for midnights within the date range.
   """
-  def midnights(from, to, utc_offset) do
-    start = div(from, @h24) * @h24 + @h24 - utc_offset
-    _midnights(start, to)
+  def midnights(from, to, relocations \\ Application.fetch_env!(:w2, :relocations)) do
+    utc_offsets =
+      Enum.map(relocations, fn {date, tz} ->
+        dt = DateTime.new!(date, ~T[00:00:00], tz)
+        {DateTime.to_unix(dt), dt.utc_offset}
+      end)
+
+    [{_unix, initial_utc_offset} | _] = utc_offsets = filter_utc_offsets(from, utc_offsets)
+    start = div(from, @h24) * @h24 + @h24 - initial_utc_offset
+    _midnights(start, to, utc_offsets)
   end
 
-  defp _midnights(date, to) when date < to, do: [date | _midnights(date + @h24, to)]
-  defp _midnights(_date, _to), do: []
+  defp filter_utc_offsets(ts, [{t1, _} | [{t2, _} | _] = rest] = all) do
+    fits? = ts >= t1 and ts <= t2
+    if fits?, do: all, else: filter_utc_offsets(ts, rest)
+  end
+
+  defp filter_utc_offsets(ts, [{t, _tz}] = all) do
+    fits? = ts >= t
+    if fits?, do: all, else: raise("Couldn't filter utc offsets for #{inspect(ts)}")
+  end
+
+  defp _midnights(date, to, [{_, _}, {dt, _} | _] = utc_offsets) when date < to and date < dt do
+    [date | _midnights(date + @h24, to, utc_offsets)]
+  end
+
+  defp _midnights(date, to, [{dt, _}] = utc_offsets) when date < to and date > dt do
+    [date | _midnights(date + @h24, to, utc_offsets)]
+  end
+
+  defp _midnights(date, to, [{_, o1} | [{_, o2} | _] = next_utc_offsets]) when date < to do
+    [date | _midnights(date + @h24 + (o1 - o2), to, next_utc_offsets)]
+  end
+
+  defp _midnights(_date, _to, _utc_offsets), do: []
 
   @hour_in_seconds 3600
   # @day_in_seconds 24 * @hour_in_seconds

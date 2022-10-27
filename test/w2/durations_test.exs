@@ -117,24 +117,63 @@ defmodule W2.DurationsTest do
   end
 
   describe "midnights/3" do
-    test "returns all MSK 0th hours between two timestamps" do
+    test "returns all 0th hours between two timestamps taking into account relocations" do
+      # in msk
       assert Durations.midnights(
-               _from = unix(msk(~D[2022-01-01], ~T[12:03:12])),
-               _to = unix(msk(~D[2022-01-12], ~T[23:53:12])),
-               _utc_offset = Durations.msk().utc_offset
+               _from = unix(msk(~D[2022-08-20], ~T[12:03:12])),
+               _to = unix(msk(~D[2022-08-24], ~T[23:53:12]))
              ) == [
-               unix(msk(~D[2022-01-02], ~T[00:00:00])),
-               unix(msk(~D[2022-01-03], ~T[00:00:00])),
-               unix(msk(~D[2022-01-04], ~T[00:00:00])),
-               unix(msk(~D[2022-01-05], ~T[00:00:00])),
-               unix(msk(~D[2022-01-06], ~T[00:00:00])),
-               unix(msk(~D[2022-01-07], ~T[00:00:00])),
-               unix(msk(~D[2022-01-08], ~T[00:00:00])),
-               unix(msk(~D[2022-01-09], ~T[00:00:00])),
-               unix(msk(~D[2022-01-10], ~T[00:00:00])),
-               unix(msk(~D[2022-01-11], ~T[00:00:00])),
-               unix(msk(~D[2022-01-12], ~T[00:00:00]))
+               unix(msk(~D[2022-08-21], ~T[00:00:00])),
+               unix(msk(~D[2022-08-22], ~T[00:00:00])),
+               unix(msk(~D[2022-08-23], ~T[00:00:00])),
+               unix(msk(~D[2022-08-24], ~T[00:00:00]))
              ]
+
+      # msk -> tbs
+      assert Durations.midnights(
+               _from = unix(msk(~D[2022-08-26], ~T[12:03:12])),
+               _to = unix(tbs(~D[2022-08-30], ~T[23:53:12]))
+             ) == [
+               unix(msk(~D[2022-08-27], ~T[00:00:00])),
+               unix(msk(~D[2022-08-28], ~T[00:00:00])),
+               unix(tbs(~D[2022-08-29], ~T[00:00:00])),
+               unix(tbs(~D[2022-08-30], ~T[00:00:00]))
+             ]
+
+      # in tbs
+      assert Durations.midnights(
+               _from = unix(tbs(~D[2022-09-01], ~T[12:03:12])),
+               _to = unix(tbs(~D[2022-09-05], ~T[23:53:12]))
+             ) == [
+               unix(tbs(~D[2022-09-02], ~T[00:00:00])),
+               unix(tbs(~D[2022-09-03], ~T[00:00:00])),
+               unix(tbs(~D[2022-09-04], ~T[00:00:00])),
+               unix(tbs(~D[2022-09-05], ~T[00:00:00]))
+             ]
+
+      # tbs -> bkk
+      assert Durations.midnights(
+               _from = unix(tbs(~D[2022-10-06], ~T[12:03:12])),
+               _to = unix(bkk(~D[2022-10-10], ~T[23:53:12]))
+             ) == [
+               unix(tbs(~D[2022-10-07], ~T[00:00:00])),
+               unix(tbs(~D[2022-10-08], ~T[00:00:00])),
+               unix(bkk(~D[2022-10-09], ~T[00:00:00])),
+               unix(bkk(~D[2022-10-10], ~T[00:00:00]))
+             ]
+
+      # in bkk
+      assert Durations.midnights(
+               _from = unix(bkk(~D[2022-10-12], ~T[12:03:12])),
+               _to = unix(bkk(~D[2022-10-16], ~T[23:53:12]))
+             ) == [
+               unix(bkk(~D[2022-10-13], ~T[00:00:00])),
+               unix(bkk(~D[2022-10-14], ~T[00:00:00])),
+               unix(bkk(~D[2022-10-15], ~T[00:00:00])),
+               unix(bkk(~D[2022-10-16], ~T[00:00:00]))
+             ]
+
+      # TODO test going back in TZ/utc offset
     end
   end
 
