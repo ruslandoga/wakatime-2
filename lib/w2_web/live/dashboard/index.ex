@@ -24,7 +24,7 @@ defmodule W2Web.DashboardLive.Index do
 
   @impl true
   def render(assigns) do
-    {from, to} = msk_date_range(assigns)
+    {from, to} = local_date_range(assigns)
 
     %{
       project: selected_project,
@@ -142,9 +142,7 @@ defmodule W2Web.DashboardLive.Index do
 
   # TODO div(...)
   defp bucket_timeline(assigns) do
-    {from, to} = msk_date_range(assigns)
-    # TODO
-    utc_offset = from.utc_offset
+    {from, to} = local_date_range(assigns)
     to = DateTime.to_unix(to)
     from = DateTime.to_unix(from)
     interval = Durations.interval(from, to)
@@ -159,7 +157,7 @@ defmodule W2Web.DashboardLive.Index do
       assign(assigns,
         interval: interval,
         rects: rects,
-        midnights: Durations.midnights(from, to, utc_offset),
+        midnights: Durations.midnights(from, to),
         from_div: from_div,
         h_count: div(to, interval) - div(from, interval) + 1
       )
@@ -248,7 +246,7 @@ defmodule W2Web.DashboardLive.Index do
 
   # TODO refresh from/to
   defp fetch_data(%{assigns: assigns} = socket) do
-    {from, to} = msk_date_range(assigns)
+    {from, to} = local_date_range(assigns)
     project = assigns[:project]
     branch = assigns[:branch]
     file = assigns[:file]
@@ -297,13 +295,13 @@ defmodule W2Web.DashboardLive.Index do
     |> assign(page_title: page_title)
   end
 
-  defp msk_date_range(assigns) do
-    to = msk(assigns[:to], :up) || Durations.msk()
-    from = msk(assigns[:from], :down) || add_days(to, -@days)
-    {from, to}
+  defp local_date_range(assigns) do
+    to = local_datetime(assigns[:to], :up) || Durations.to_local()
+    from = local_datetime(assigns[:from], :down) || add_days(to, -@days)
+    {from, to} |> IO.inspect()
   end
 
-  defp msk(date, direction) do
+  defp local_datetime(date, direction) do
     if date do
       time =
         case direction do
@@ -311,7 +309,7 @@ defmodule W2Web.DashboardLive.Index do
           :down -> ~T[00:00:00]
         end
 
-      DateTime.new!(date, time, "Europe/Moscow")
+      DateTime.new!(date, time, Durations.local_tz(date))
     end
   end
 
@@ -327,6 +325,7 @@ defmodule W2Web.DashboardLive.Index do
     "hsl(#{hue},40%,50%)"
   end
 
+  # TODO make add_days take relocations into account
   @spec add_days(DateTime.t(), integer) :: DateTime.t()
   defp add_days(dt, days) do
     time = Time.new!(dt.hour, dt.minute, dt.second)

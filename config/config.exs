@@ -34,7 +34,13 @@ config :sentry,
 config :elixir, :time_zone_database, W2.TimeZoneDatabase
 
 # TODO don't hardcode, but read from env vars
-config :w2, timezone: "Europe/Moscow"
+config :w2,
+  relocations: [
+    {~D[0000-01-01], "Europe/Moscow"},
+    {~D[2022-08-28], "Asia/Tbilisi"},
+    {~D[2022-10-08], "Asia/Bangkok"},
+    {~D[2022-11-04], "Asia/Kuala_Lumpur"}
+  ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
