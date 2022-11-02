@@ -44,9 +44,7 @@ defmodule W2Web do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {W2Web.LayoutView, :live}
-
+      use Phoenix.LiveView, layout: {W2Web.LayoutView, :live}
       unquote(view_helpers())
     end
   end
@@ -54,7 +52,6 @@ defmodule W2Web do
   def live_component do
     quote do
       use Phoenix.LiveComponent
-
       unquote(view_helpers())
     end
   end
@@ -62,7 +59,6 @@ defmodule W2Web do
   def component do
     quote do
       use Phoenix.Component
-
       unquote(view_helpers())
     end
   end
@@ -87,11 +83,8 @@ defmodule W2Web do
   defp view_helpers do
     quote do
       use Phoenix.HTML
-      import Phoenix.Component
-      import Phoenix.View
-
-      import W2Web.ErrorHelpers
-      import W2Web.Gettext
+      import Phoenix.{Component, View}
+      import W2Web.{ErrorHelpers, Gettext}
       alias W2Web.Router.Helpers, as: Routes
     end
   end
