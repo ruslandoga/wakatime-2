@@ -101,7 +101,7 @@ defmodule W2Web.DashboardLive.Index do
             <span class="text-white">Σ<%= format_time(@total) %></span>
           </div>
           <.time_table
-            let={%{value: [project, time], dimmed: dimmed, qs: qs}}
+            :let={%{value: [project, time], dimmed: dimmed, qs: qs}}
             rows={@project_rows}
             title="PROJECT"
             extra_header_class="bg-black text-white"><.time_table_row
@@ -111,7 +111,7 @@ defmodule W2Web.DashboardLive.Index do
         </div>
         <div class="w-1/3 flex flex-col">
           <.time_table
-            let={%{value: [project, branch, time], dimmed: dimmed, qs: qs}}
+            :let={%{value: [project, branch, time], dimmed: dimmed, qs: qs}}
             rows={@branch_rows}
             title="BRANCH"
             extra_header_class="bg-red-400"><.time_table_row
@@ -124,7 +124,7 @@ defmodule W2Web.DashboardLive.Index do
         </div>
         <div class="w-1/3 flex flex-col bg-blue-50">
           <.time_table
-            let={%{value: [project, file, time], dimmed: dimmed, qs: qs}}
+            :let={%{value: [project, file, time], dimmed: dimmed, qs: qs}}
             rows={@file_rows}
             title="FILE"
             extra_header_class="bg-blue-400"><.time_table_row

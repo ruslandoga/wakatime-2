@@ -42,7 +42,9 @@ config :w2,
     {~D[2022-11-04], "Asia/Kuala_Lumpur"},
     {~D[2022-11-30], "Asia/Bangkok"},
     {~D[2022-12-17], "Asia/Taipei"},
-    {~D[2022-12-28], "Asia/Hong_Kong"}
+    {~D[2022-12-28], "Asia/Hong_Kong"},
+    {~D[2023-01-06], "Asia/Hanoi"},
+    {~D[2023-02-03], "Asia/Bangkok"}
   ]
 
 # Import environment specific config. This must remain at the bottom

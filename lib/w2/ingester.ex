@@ -141,7 +141,7 @@ defmodule W2.Ingester do
     |> Map.put("editor", editor)
     |> Map.put("operating_system", os)
     |> Map.put("machine_name", machine_name)
-    |> Map.update("is_write", nil, fn is_write -> !!is_write end)
+    |> Map.update("is_write", false, fn is_write -> !!is_write end)
     |> cast_heartbeat()
     |> Map.take(Heartbeat.__schema__(:fields))
   end

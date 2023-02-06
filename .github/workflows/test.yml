@@ -6,20 +6,21 @@ on:
     branches: [master]
 
 jobs:
-  mix:
-    runs-on: ubuntu-22.04
+  elixir:
+    runs-on: ubuntu-latest
+
+    env:
+      MIX_ENV: test
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Elixir
-        uses: erlef/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
-          elixir-version: "1.14.2"
+          elixir-version: "1.14.3"
           otp-version: "25.2"
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: |
             deps
@@ -27,14 +28,7 @@ jobs:
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
-      - name: Install dependencies
-        run: mix deps.get
-
-      - name: Check formatted
-        run: mix format --check-formatted
-
-      - name: Compile (warnings as errors)
-        run: MIX_ENV=test mix compile --warnings-as-errors
-
-      - name: Run tests
-        run: mix test
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix format --check-formatted
+      - run: mix test
