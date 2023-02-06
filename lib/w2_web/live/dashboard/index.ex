@@ -298,7 +298,7 @@ defmodule W2Web.DashboardLive.Index do
   defp local_date_range(assigns) do
     to = local_datetime(assigns[:to], :up) || Durations.to_local()
     from = local_datetime(assigns[:from], :down) || add_days(to, -@days)
-    {from, to} |> IO.inspect()
+    {from, to}
   end
 
   defp local_datetime(date, direction) do
