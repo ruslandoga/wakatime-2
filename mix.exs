@@ -5,7 +5,7 @@ defmodule W2.MixProject do
     [
       app: :w2,
       version: "0.1.0",
-      elixir: "~> 1.12",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -34,7 +34,7 @@ defmodule W2.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.6.9"},
+      {:phoenix, "~> 1.7.1"},
       {:phoenix_ecto, "~> 4.4"},
       {:ecto_sql, "~> 3.6"},
       {:ecto_sqlite3, ">= 0.0.0"},
@@ -51,7 +51,7 @@ defmodule W2.MixProject do
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
       {:sentry, "~> 8.0"},
-      {:finch, "~> 0.14.0"}
+      {:finch, "~> 0.15.0"}
     ]
   end
 
