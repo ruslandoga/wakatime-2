@@ -94,9 +94,22 @@ defmodule W2Web.DashboardLive.Index do
         <div class="w-1/3 flex flex-col">
           <div class="bg-neutral-600 px-4 flex justify-between">
             <form class="inline-block text-blue-200" phx-change="date-range" phx-submit="date-range">
-              <input type="date" id="from-date" name="from_date" value={@from} class="bg-neutral-600 h-6" phx-debounce="300"/>
-              —
-              <input type="date" id="to-date" name="to_date" value={@to} class="bg-neutral-600 h-6" phx-debounce="300"/>
+              <input
+                type="date"
+                id="from-date"
+                name="from_date"
+                value={@from}
+                class="bg-neutral-600 h-6"
+                phx-debounce="300"
+              /> —
+              <input
+                type="date"
+                id="to-date"
+                name="to_date"
+                value={@to}
+                class="bg-neutral-600 h-6"
+                phx-debounce="300"
+              />
             </form>
             <span class="text-white">Σ<%= format_time(@total) %></span>
           </div>
@@ -104,36 +117,41 @@ defmodule W2Web.DashboardLive.Index do
             :let={%{value: [project, time], dimmed: dimmed, qs: qs}}
             rows={@project_rows}
             title="PROJECT"
-            extra_header_class="bg-black text-white"><.time_table_row
+            extra_header_class="bg-black text-white"
+          >
+            <.time_table_row
               style={"background-color:" <> color(project)}
               time={time}
-              dimmed={dimmed} qs={qs}><%= project %></.time_table_row></.time_table>
+              dimmed={dimmed}
+              qs={qs}
+            >
+              <%= project %>
+            </.time_table_row>
+          </.time_table>
         </div>
         <div class="w-1/3 flex flex-col">
           <.time_table
             :let={%{value: [project, branch, time], dimmed: dimmed, qs: qs}}
             rows={@branch_rows}
             title="BRANCH"
-            extra_header_class="bg-red-400"><.time_table_row
-              class="odd:bg-red-200"
-              time={time}
-              dimmed={dimmed}
-              qs={qs}><.prefix_span
-                prefix={project}
-                value={branch} /></.time_table_row></.time_table>
+            extra_header_class="bg-red-400"
+          >
+            <.time_table_row class="odd:bg-red-200" time={time} dimmed={dimmed} qs={qs}>
+              <.prefix_span prefix={project} value={branch} />
+            </.time_table_row>
+          </.time_table>
         </div>
         <div class="w-1/3 flex flex-col bg-blue-50">
           <.time_table
             :let={%{value: [project, file, time], dimmed: dimmed, qs: qs}}
             rows={@file_rows}
             title="FILE"
-            extra_header_class="bg-blue-400"><.time_table_row
-              class="odd:bg-blue-100"
-              time={time}
-              dimmed={dimmed}
-              qs={qs}><.prefix_span
-                prefix={project}
-                value={file} /></.time_table_row></.time_table>
+            extra_header_class="bg-blue-400"
+          >
+            <.time_table_row class="odd:bg-blue-100" time={time} dimmed={dimmed} qs={qs}>
+              <.prefix_span prefix={project} value={file} />
+            </.time_table_row>
+          </.time_table>
         </div>
       </div>
     </div>
@@ -163,22 +181,27 @@ defmodule W2Web.DashboardLive.Index do
       )
 
     ~H"""
-    <svg viewbox={"0 0 #{@h_count} #{@interval}"} preserveAspectRatio="none" class="h-full w-full bg-red-900">
-    <%= for midnight <- @midnights do %><.separator
-      x={div(midnight, @interval) - @from_div} height={@interval}
-    /><% end %><%= for rect <- @rects do %><.rect
-      x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)}
-    /><% end %>
+    <svg
+      viewbox={"0 0 #{@h_count} #{@interval}"}
+      preserveAspectRatio="none"
+      class="h-full w-full bg-red-900"
+    >
+      <%= for midnight <- @midnights do %>
+        <.separator x={div(midnight, @interval) - @from_div} height={@interval} />
+      <% end %>
+      <%= for rect <- @rects do %>
+        <.rect x={rect.x} y={rect.y} height={rect.height} color={color(rect.project)} />
+      <% end %>
     </svg>
     """
   end
 
   defp separator(assigns) do
-    ~H[<rect x={@x} y="0" width="1" height={@height} fill="#b91c1c80"/>]
+    ~H[<rect x={@x} y="0" width="1" height={@height} fill="#b91c1c80" />]
   end
 
   defp rect(assigns) do
-    ~H[<rect x={@x} y={@y} width="1" height={@height} fill={@color}/>]
+    ~H[<rect x={@x} y={@y} width="1" height={@height} fill={@color} />]
   end
 
   defp time_table(assigns) do
@@ -188,14 +211,18 @@ defmodule W2Web.DashboardLive.Index do
       <span>TIME</span>
     </div>
     <ul class="overflow-auto">
-      <%= for row <- @rows do %><%= render_slot(@inner_block, row) %><% end %>
+      <%= for row <- @rows do %>
+        <%= render_slot(@inner_block, row) %>
+      <% end %>
     </ul>
     """
   end
 
   defp _link(assigns) do
     ~H"""
-    <.link patch={@href} class="px-4 flex justify-between leading-6 transition"><%= render_slot(@inner_block) %></.link>
+    <.link patch={@href} class="px-4 flex justify-between leading-6 transition">
+      <%= render_slot(@inner_block) %>
+    </.link>
     """
   end
 
@@ -207,7 +234,11 @@ defmodule W2Web.DashboardLive.Index do
     assigns = assign(assigns, class: class, path: path)
 
     ~H"""
-    <li class={@class} style={@style}><._link href={@path}><span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span></._link></li>
+    <li class={@class} style={@style}>
+      <._link href={@path}>
+        <span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span>
+      </._link>
+    </li>
     """
   end
 
