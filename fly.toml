@@ -18,7 +18,7 @@ processes = []
   auto_rollback = true
 
 [mounts]
-  source = "w2_data"
+  source = "w2_data_machines"
   destination = "/data"
 
 [[services]]
