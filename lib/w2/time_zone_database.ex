@@ -7,6 +7,7 @@ defmodule W2.TimeZoneDatabase do
     "Europe/Moscow" => %{std_offset: 0, utc_offset: 10800, zone_abbr: "MSK"},
     "Asia/Tbilisi" => %{std_offset: 0, utc_offset: 14400, zone_abbr: "GET"},
     "Asia/Bangkok" => %{std_offset: 0, utc_offset: 25200, zone_abbr: "ICT"},
+    "Asia/Chiang_Mai" => %{std_offset: 0, utc_offset: 25200, zone_abbr: "ICT"},
     "Asia/Kuala_Lumpur" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "MYT"},
     "Asia/Taipei" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "TST"},
     "Asia/Hong_Kong" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "HKST"},
