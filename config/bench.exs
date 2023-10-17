@@ -11,4 +11,4 @@ config :w2, W2Web.Endpoint,
   server: false
 
 # Print only warnings and errors during bench
-config :logger, level: :warn
+config :logger, level: :warning
