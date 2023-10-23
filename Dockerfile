@@ -2,7 +2,7 @@
 # LITESTREAM #
 ##############
 
-FROM litestream/litestream:0.3.11 AS litestream
+FROM litestream/litestream:0.3.12 AS litestream
 
 #########
 # BUILD #
