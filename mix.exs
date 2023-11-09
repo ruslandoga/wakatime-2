@@ -41,7 +41,7 @@ defmodule W2.MixProject do
       {:phoenix_html, "~> 3.0"},
       {:phoenix_view, "~> 2.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 0.19.0"},
+      {:phoenix_live_view, "~> 0.20.1"},
       {:floki, ">= 0.30.0", only: :test},
       # {:phoenix_live_dashboard, "~> 0.6"},
       {:telemetry_metrics, "~> 0.6"},
@@ -51,7 +51,7 @@ defmodule W2.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
-      {:sentry, "~> 8.0"},
+      {:sentry, "~> 9.1.0"},
       {:finch, "~> 0.16.0"}
     ]
   end
