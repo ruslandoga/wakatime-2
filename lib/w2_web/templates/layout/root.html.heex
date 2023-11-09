@@ -21,6 +21,14 @@
       src="https://hello-world-rough-snow-8d8e.test1086.workers.dev/js/script.js"
     >
     </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-G5ET8EXSM5">
+    </script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-G5ET8EXSM5');
+    </script>
   </head>
   <body class="bg-red-100">
     <%= @inner_content %>
