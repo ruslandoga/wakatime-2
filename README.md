@@ -5,7 +5,7 @@ Successor to [ruslandoga/wakatime-1,](https://github.com/ruslandoga/wakatime-1) 
 #### How-to:
 
 ```sh
-> git clone https://github.com/ruslandoga/wakatime-1
+> git clone https://github.com/ruslandoga/wakatime-2
 
 > api_key=$(uuidgen | tr '[:upper:]' '[:lower:]')
 
