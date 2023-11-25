@@ -51,7 +51,7 @@ defmodule W2.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
-      {:sentry, "~> 9.1.0"},
+      {:sentry, "~> 10.0.0"},
       {:finch, "~> 0.16.0"}
     ]
   end
