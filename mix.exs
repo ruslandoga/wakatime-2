@@ -52,7 +52,7 @@ defmodule W2.MixProject do
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
       {:sentry, "~> 10.1.0"},
-      {:finch, "~> 0.17.0"}
+      {:finch, "~> 0.18.0"}
     ]
   end
 
