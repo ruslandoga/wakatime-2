@@ -13,7 +13,10 @@ config :w2,
 # Configures the endpoint
 config :w2, W2Web.Endpoint,
   url: [host: "localhost"],
-  render_errors: [view: W2Web.ErrorView, accepts: ~w(html json), layout: false],
+  render_errors: [
+    formats: [html: XWeb.ErrorHTML, json: XWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: W2.PubSub,
   live_view: [signing_salt: "yePNywHX"]
 
