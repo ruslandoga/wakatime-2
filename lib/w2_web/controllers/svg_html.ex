@@ -1,5 +1,7 @@
-defmodule W2Web.SVGView do
-  use W2Web, :view
+defmodule W2Web.SVGHTML do
+  use W2Web, :html
+
+  embed_templates "svg_html/*"
 
   @colors [
     "#fbbf24",

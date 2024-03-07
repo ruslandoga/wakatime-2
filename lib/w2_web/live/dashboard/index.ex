@@ -1,7 +1,7 @@
 defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
-  alias W2Web.DashboardView
+  alias W2Web.Dashboards, as: DashboardView
 
   # hover
   # maybe just hide instead of filter + refetch
@@ -230,8 +230,7 @@ defmodule W2Web.DashboardLive.Index do
     assigns = assign_new(assigns, :class, fn -> "" end)
     assigns = assign_new(assigns, :style, fn -> nil end)
     class = if dimmed, do: assigns.class <> " opacity-20", else: assigns.class
-    path = Routes.dashboard_index_path(W2Web.Endpoint, :index, qs)
-    assigns = assign(assigns, class: class, path: path)
+    assigns = assign(assigns, class: class, path: ~p"/?#{qs}")
 
     ~H"""
     <li class={@class} style={@style}>
@@ -266,8 +265,7 @@ defmodule W2Web.DashboardLive.Index do
   def handle_event("date-range", params, socket) do
     %{"from_date" => from, "to_date" => to} = params
     qs = qs(socket.assigns, from: maybe_date(from), to: maybe_date(to))
-    path = Routes.dashboard_index_path(socket, :index, qs)
-    {:noreply, push_patch(socket, to: path, replace: true)}
+    {:noreply, push_patch(socket, to: ~p"/?#{qs}", replace: true)}
   end
 
   @impl true

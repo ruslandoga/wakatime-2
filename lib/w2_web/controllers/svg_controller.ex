@@ -1,7 +1,7 @@
 defmodule W2Web.SVGController do
   use W2Web, :controller
   alias W2.Durations
-  alias W2Web.DashboardView
+  alias W2Web.Dashboards, as: DashboardView
 
   @days 7
 

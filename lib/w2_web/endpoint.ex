@@ -10,8 +10,8 @@ defmodule W2Web.Endpoint do
   plug Plug.Static,
     at: "/",
     from: :w2,
-    gzip: false,
-    only: ~w(assets fonts images favicon.ico robots.txt)
+    gzip: true,
+    only: W2Web.static_paths()
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -21,10 +21,6 @@ defmodule W2Web.Endpoint do
     plug Phoenix.CodeReloader
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :w2
   end
-
-  # plug Phoenix.LiveDashboard.RequestLogger,
-  #   param_key: "request_logger",
-  #   cookie_key: "request_logger"
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]

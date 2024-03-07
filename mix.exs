@@ -26,7 +26,6 @@ defmodule W2.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
   defp elixirc_paths(_env), do: ["lib"]
 
   # Specifies your project dependencies.
@@ -43,10 +42,8 @@ defmodule W2.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 0.20.1"},
       {:floki, ">= 0.30.0", only: :test},
-      # {:phoenix_live_dashboard, "~> 0.6"},
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
-      {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:benchee, "~> 1.1", only: [:bench]},
@@ -72,7 +69,6 @@ defmodule W2.MixProject do
       ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [
         "cmd npm ci --prefix assets",
         "cmd npm run deploy:css --prefix assets",
