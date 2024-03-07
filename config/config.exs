@@ -14,7 +14,7 @@ config :w2,
 config :w2, W2Web.Endpoint,
   url: [host: "localhost"],
   render_errors: [
-    formats: [html: XWeb.ErrorHTML, json: XWeb.ErrorJSON],
+    formats: [html: W2Web.ErrorHTML, json: W2Web.ErrorJSON],
     layout: false
   ],
   pubsub_server: W2.PubSub,
