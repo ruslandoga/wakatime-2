@@ -10,17 +10,7 @@ defmodule W2Web.HeartbeatController do
 
     conn
     |> put_status(201)
-    |> json(ingest_response(heartbeats))
-  end
-
-  defp ingest_response(heartbeats) do
-    case heartbeats do
-      heartbeats when is_list(heartbeats) ->
-        %{"responses" => Enum.map(heartbeats, fn _ -> [nil, 201] end)}
-
-      %{} = heartbeat ->
-        %{"data" => heartbeat}
-    end
+    |> json(%{"responses" => Enum.map(heartbeats, fn _ -> [nil, 201] end)})
   end
 
   def ignore(conn, params) do
