@@ -25,9 +25,8 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :sentry, client: W2.Sentry.FinchHTTPClient
-
 config :sentry,
+  client: W2.Sentry.FinchHTTPClient,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]
 

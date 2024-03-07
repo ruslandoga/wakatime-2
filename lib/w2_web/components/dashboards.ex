@@ -1,6 +1,4 @@
-defmodule W2Web.DashboardView do
-  use W2Web, :view
-
+defmodule W2Web.Dashboards do
   def prepare_chart_for_svg(from, interval, buckets) do
     from = div(from, interval)
 

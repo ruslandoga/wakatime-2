@@ -7,10 +7,6 @@ import Config
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
-config :sentry,
-  environment_name: config_env(),
-  included_environments: []
-
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
@@ -34,7 +30,7 @@ if config_env() == :prod do
 
   if dns = System.get_env("SENTRY_DSN") do
     config :logger, backends: [:console, Sentry.LoggerBackend]
-    config :sentry, dsn: dns, included_environments: [:prod]
+    config :sentry, dsn: dns, environment_name: config_env()
   end
 
   database_path =

@@ -3,7 +3,7 @@ defmodule W2Web.Router do
 
   pipeline :browser do
     plug :accepts, ["html"]
-    plug :put_root_layout, {W2Web.LayoutView, :root}
+    plug :put_root_layout, html: {W2Web.Layouts, :root}
     plug :put_secure_browser_headers
   end
 
@@ -12,7 +12,7 @@ defmodule W2Web.Router do
   end
 
   pipeline :auth do
-    plug W2Web.Plugs.Auth
+    plug :wakatime_auth
   end
 
   scope "/", W2Web do
@@ -42,20 +42,18 @@ defmodule W2Web.Router do
     # /files
   end
 
-  # Enables LiveDashboard only for development
-  #
-  # If you want to use the LiveDashboard in production, you should put
-  # it behind authentication and allow only admins to access it.
-  # If your application does not have an admins-only section yet,
-  # you can use Plug.BasicAuth to set up some basic authentication
-  # as long as you are also using SSL (which you should anyway).
-  # if Mix.env() in [:dev, :test] do
-  #   import Phoenix.LiveDashboard.Router
-
-  #   scope "/" do
-  #     pipe_through :browser
-
-  #     live_dashboard "/dashboard", metrics: W2Web.Telemetry
-  #   end
-  # end
+  @doc false
+  def wakatime_auth(conn, _opts) do
+    with ["Basic " <> basic] <- get_req_header(conn, "authorization"),
+         {:ok, api_key} <- Base.decode64(basic, padding: false),
+         true <- Plug.Crypto.secure_compare(api_key, W2.api_key()) do
+      conn
+    else
+      _ ->
+        conn
+        |> put_resp_header("www-authenticate", "Basic")
+        |> resp(401, "Unauthorized")
+        |> halt()
+    end
+  end
 end

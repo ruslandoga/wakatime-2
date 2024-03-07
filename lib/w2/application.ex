@@ -1,8 +1,5 @@
 defmodule W2.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
-
   use Application
 
   @impl true
@@ -10,22 +7,14 @@ defmodule W2.Application do
     repo_config = Application.fetch_env!(:w2, W2.Repo)
 
     children = [
-      # Start the Ecto repository
       W2.Repo,
       {W2.Release.Migrator, migrate: repo_config[:migrate]},
       {W2.Release.Backfill, backfill: repo_config[:backfill]},
-      # Start the Telemetry supervisor
       W2Web.Telemetry,
-      # Start the PubSub system
       {Phoenix.PubSub, name: W2.PubSub},
-      # Start the Endpoint (http/https)
       W2Web.Endpoint
-      # Start a worker by calling: W2.Worker.start_link(arg)
-      # {W2.Worker, arg}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: W2.Supervisor]
     Supervisor.start_link(children, opts)
   end
