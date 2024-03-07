@@ -2,7 +2,7 @@ defmodule W2Web.Router do
   use W2Web, :router
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "svg"]
     plug :put_root_layout, html: {W2Web.Layouts, :root}
     plug :put_secure_browser_headers
   end

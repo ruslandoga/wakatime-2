@@ -19,6 +19,7 @@ defmodule W2Web.SVGController do
     conn
     |> put_root_layout(false)
     |> put_layout(false)
+    |> put_new_view(svg: W2Web.SVGHTML)
     |> put_resp_header("content-type", "image/svg+xml")
     |> put_resp_header(
       "content-security-policy",
@@ -48,6 +49,7 @@ defmodule W2Web.SVGController do
     conn
     |> put_root_layout(false)
     |> put_layout(false)
+    |> put_new_view(svg: W2Web.SVGHTML)
     |> put_resp_header("content-type", "image/svg+xml")
     |> put_resp_header(
       "content-security-policy",
@@ -60,18 +62,6 @@ defmodule W2Web.SVGController do
       day_starts: Durations.midnights(from, to),
       background: params["b"]
     )
-  end
-
-  def test_svg(conn, _params) do
-    conn
-    |> put_root_layout(false)
-    |> put_layout(false)
-    |> put_resp_header("content-type", "image/svg+xml")
-    |> put_resp_header(
-      "content-security-policy",
-      "default-src 'none'; style-src 'unsafe-inline'; sandbox"
-    )
-    |> render("test.svg")
   end
 
   def test(conn, _params) do
