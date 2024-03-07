@@ -8,6 +8,7 @@ on:
 jobs:
   elixir:
     runs-on: ubuntu-latest
+
     env:
       MIX_ENV: bench
 
@@ -24,9 +25,11 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-bench-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-bench-
+          key: bench-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.head_ref || github.ref }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            bench-${{ matrix.otp }}-${{ matrix.elixir }}-${{ github.head_ref || github.ref }}-
+            bench-${{ matrix.otp }}-${{ matrix.elixir }}-refs/heads/master-
 
-      - run: mix deps.get --only=bench
+      - run: mix deps.get --only=$MIX_ENV
       - run: mix compile --warnings-as-errors
-      - run: make bench
+      - run: mix do ecto.reset, run bench/heartbeats_insert.exs, run bench/timeline.exs
