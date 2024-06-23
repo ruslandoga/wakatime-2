@@ -1,44 +1,18 @@
-# The directory Mix will write compiled artifacts to.
-/_build/
+# shellcheck disable=all
+# Ignore everything
+*
 
-# If you run "mix test --cover", coverage assets end up here.
-/cover/
+# Don't ignore what we copy into the image
+!assets/**
+!config/runtime.exs
+!config/prod.exs
+!lib/**
+!priv/**
+!mix.exs
+!mix.lock
 
-# The directory Mix downloads your dependencies sources to.
-/deps/
-
-# Where third-party dependencies like ExDoc output generated docs.
-/doc/
-
-# Ignore .fetch files in case you like to edit your project deps locally.
-/.fetch
-
-# If the VM crashes, it generates a dump, let's ignore it too.
-erl_crash.dump
-
-# Also ignore archive artifacts (built via "mix archive.build").
-*.ez
-
-# Ignore package tarball (built via "mix hex.build").
-m-*.tar
-
-# Since we are building assets from assets/,
-# we ignore priv/static. You may want to comment
-# this depending on your deployment strategy.
-/priv/static/
-
-# Temporary files, for example, from tests.
-/tmp/
-
-/.elixir_ls/
-/.github/
-/test/
-/dev/
-/bench/
-
-.dockerignore
-.envrc
-.DS_Store
-README.md
-fly.toml
-Dockerfile
+# Keep git HEAD and refs to access current commit hash if needed:
+# $ cat .git/HEAD | awk '{print ".git/"$2}' | xargs cat
+# d0b8727759e1e0e7aa3d41707d12376e373d5ecc
+!.git/HEAD
+!.git/refs
