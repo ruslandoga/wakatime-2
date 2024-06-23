@@ -4,8 +4,7 @@
 
 # Don't ignore what we copy into the image
 !assets/**
-!config/runtime.exs
-!config/prod.exs
+!config/**
 !lib/**
 !priv/**
 !mix.exs
