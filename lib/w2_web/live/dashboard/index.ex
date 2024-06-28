@@ -1,7 +1,6 @@
 defmodule W2Web.DashboardLive.Index do
   use W2Web, :live_view
   alias W2.{Durations, Ingester}
-  alias W2Web.Dashboards, as: DashboardView
 
   # hover
   # maybe just hide instead of filter + refetch
@@ -168,8 +167,8 @@ defmodule W2Web.DashboardLive.Index do
 
     rects =
       assigns.timeline
-      |> DashboardView.bucket_timeline(interval)
-      |> DashboardView.prepare_bucket_timeline_for_svg(from, interval)
+      |> W2Web.SVGHTML.bucket_timeline(interval)
+      |> W2Web.SVGHTML.prepare_bucket_timeline_for_svg(from, interval)
 
     assigns =
       assign(assigns,

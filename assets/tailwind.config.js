@@ -1,9 +1,16 @@
+// See the Tailwind configuration guide for advanced usage
+// https://tailwindcss.com/docs/configuration
+
 const plugin = require("tailwindcss/plugin");
 
 module.exports = {
   content: ["./js/**/*.js", "../lib/w2_web.ex", "../lib/w2_web/**/*.*ex"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: "#FD4F00",
+      },
+    },
   },
   plugins: [
     // Allows prefixing tailwind classes with LiveView classes to add rules
@@ -11,9 +18,6 @@ module.exports = {
     //
     //     <div class="phx-click-loading:animate-ping">
     //
-    plugin(({ addVariant }) =>
-      addVariant("phx-no-feedback", [".phx-no-feedback&", ".phx-no-feedback &"])
-    ),
     plugin(({ addVariant }) =>
       addVariant("phx-click-loading", [
         ".phx-click-loading&",

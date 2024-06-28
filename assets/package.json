@@ -6,7 +6,7 @@
     "tailwind": "tailwindcss -i css/app.css -o ../priv/static/assets/app.css --postcss",
     "watch:css": "npm run tailwind -- --watch",
     "deploy:css": "NODE_ENV=production npm run tailwind -- --minify",
-    "esbuild": "esbuild js/*.js --outdir=../priv/static/assets/ --target=es2017 --bundle --external:/fonts/* --external:/images/*",
+    "esbuild": "esbuild js/*.js --outdir=../priv/static/assets/ --target=es2017 --bundle --external:/fonts/* --external:/images/* --color=true",
     "watch:js": "npm run esbuild -- --sourcemap=inline --watch",
     "deploy:js": "NODE_ENV=production npm run esbuild -- --minify --splitting --format=esm --analyze"
   },

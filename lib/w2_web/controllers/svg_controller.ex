@@ -1,7 +1,6 @@
 defmodule W2Web.SVGController do
   use W2Web, :controller
   alias W2.Durations
-  alias W2Web.Dashboards, as: DashboardView
 
   @days 7
 
@@ -14,7 +13,7 @@ defmodule W2Web.SVGController do
     interval = Durations.interval(from, to)
     from_div = div(from, interval)
 
-    bars = DashboardView.prepare_chart_for_svg(from, interval, buckets)
+    bars = W2Web.SVGHTML.prepare_chart_for_svg(from, interval, buckets)
 
     conn
     |> put_root_layout(false)
@@ -43,8 +42,8 @@ defmodule W2Web.SVGController do
 
     rects =
       timeline
-      |> DashboardView.bucket_timeline(interval)
-      |> DashboardView.prepare_bucket_timeline_for_svg(from, interval)
+      |> W2Web.SVGHTML.bucket_timeline(interval)
+      |> W2Web.SVGHTML.prepare_bucket_timeline_for_svg(from, interval)
 
     conn
     |> put_root_layout(false)

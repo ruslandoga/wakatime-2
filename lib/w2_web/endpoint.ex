@@ -10,7 +10,9 @@ defmodule W2Web.Endpoint do
   plug Plug.Static,
     at: "/",
     from: :w2,
+    encodings: [{"zstd", ".zstd"}],
     gzip: true,
+    brotli: true,
     only: W2Web.static_paths()
 
   # Code reloading can be explicitly enabled under the

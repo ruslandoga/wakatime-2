@@ -31,12 +31,3 @@ w2-*.tar
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
 /assets/node_modules/
-
-# Database files
-*.db
-*.db.*
-*.db-*
-
-.DS_Store
-.elixir_ls
-.envrc

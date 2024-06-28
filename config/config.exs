@@ -25,8 +25,13 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
+config :phoenix,
+  json_library: Jason,
+  static_compressors: [
+    PhoenixBakery.Gzip,
+    PhoenixBakery.Brotli,
+    PhoenixBakery.Zstd
+  ]
 
 config :sentry,
   client: W2.Sentry.FinchHTTPClient,
@@ -59,8 +64,7 @@ config :w2,
     {~D[2024-01-30], "Asia/Busan"},
     {~D[2024-02-03], "Europe/Moscow"},
     {~D[2024-02-13], "Asia/Kuala_Lumpur"},
-    {~D[2024-04-30], "Asia/Chiang_Mai"},
-    {~D[2024-07-29], "Asia/Busan"}
+    {~D[2024-04-30], "Asia/Chiang_Mai"}
   ]
 
 # Import environment specific config. This must remain at the bottom
