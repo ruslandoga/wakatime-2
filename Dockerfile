@@ -8,7 +8,7 @@ FROM litestream/litestream:0.3.13 AS litestream
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.17.2-erlang-27.0-alpine-3.20.1 as build
+FROM hexpm/elixir:1.17.2-erlang-27.0-alpine-3.20.1 AS build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm brotli zstd
@@ -48,17 +48,20 @@ RUN mix release
 #######
 
 FROM alpine:3.20.2 AS app
+
+RUN adduser -S -H -u 999 -G nogroup wakatime
+
 RUN apk add --no-cache --update openssl libgcc libstdc++ ncurses
 
-WORKDIR /app
-
-RUN chown nobody:nobody /app
-USER nobody:nobody
-
-COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/w2 ./
-COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=build --chmod=a+rX /app/_build/prod/rel/w2 /app
+COPY --from=litestream --chmod=a+X /usr/local/bin/litestream /usr/local/bin/litestream
 COPY litestream.yml /etc/litestream.yml
 
-ENV HOME=/app
+RUN mkdir -p /data && chmod ugo+rw -R /data
 
+USER 999
+WORKDIR /app
+ENV HOME=/app
+ENV DATABASE_PATH=/data/w2.db
+VOLUME /data
 CMD litestream restore -if-db-not-exists -if-replica-exists $DATABASE_PATH && litestream replicate -exec "/app/bin/w2 start"

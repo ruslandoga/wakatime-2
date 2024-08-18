@@ -1,22 +1,27 @@
 ### WakaTime with SQLite
 
-Successor to [ruslandoga/wakatime-1,](https://github.com/ruslandoga/wakatime-1) this repo contains a single container setup to run a bootleg of [WakaTime.](https://wakatime.com) It's composed of [SQLite,](https://www.sqlite.org) [Phoenix LiveView,](https://github.com/phoenixframework/phoenix_live_view) and [Litestream.](https://litestream.io) It can be deployed to a free instance on [fly.io.](https://fly.io)
+Successor to [ruslandoga/wakatime-1,](https://github.com/ruslandoga/wakatime-1) this repo contains a single container setup to run a naive clone of [WakaTime server.](https://wakatime.com) It's composed of [SQLite,](https://www.sqlite.org) [Phoenix LiveView,](https://github.com/phoenixframework/phoenix_live_view) and [Litestream.](https://litestream.io)
 
 #### How-to:
 
-```sh
-> git clone https://github.com/ruslandoga/wakatime-2
-
-> api_key=$(uuidgen | tr '[:upper:]' '[:lower:]')
-
-> fly create
-> fly secrets set API_KEY=${api_key}
-> vim fly.toml ........ TODO
-> fly deploy
-
-> cat > ~/.wakatime.cfg << EOM
-[settings]
-api_url = https://your-app.fly.dev
-api_key = ${api_key}
-EOM
+```shell
+$ git clone https://github.com/ruslandoga/wakatime-2
+$ docker build ./wakatime-2 -t wakatime
+$ docker run -d \
+  --name=w2 \
+  -e API_KEY=... \
+  -e BACKBLAZE_ACCESS_KEY_ID=... \
+  -e BACKBLAZE_BUCKET_NAME=... \
+  -e BACKBLAZE_SECRET_ACCESS_KEY=... \
+  -e SENTRY_DSN=... \
+  -e SECRET_KEY_BASE=... \
+  -e RELEASE_COOKIE=... \
+  -e PHX_HOST=... \
+  -e PHX_SERVER=true \
+  -e PORT=9000 \
+  -e POOL_SIZE=20 \
+  -v w2_data:/data \
+  -p 9000:9000 \
+  --restart unless-stopped \
+  wakatime
 ```
