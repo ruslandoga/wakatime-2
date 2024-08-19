@@ -9,6 +9,7 @@ $ git clone https://github.com/ruslandoga/wakatime-2
 $ docker build ./wakatime-2 -t wakatime
 $ docker run -d \
   --name=w2 \
+  --restart unless-stopped \
   -e API_KEY=... \
   -e BACKBLAZE_ACCESS_KEY_ID=... \
   -e BACKBLAZE_BUCKET_NAME=... \
@@ -19,9 +20,7 @@ $ docker run -d \
   -e PHX_HOST=... \
   -e PHX_SERVER=true \
   -e PORT=9000 \
-  -e POOL_SIZE=20 \
-  -v w2_data:/data \
   -p 9000:9000 \
-  --restart unless-stopped \
+  -v w2_data:/data \
   wakatime
 ```
