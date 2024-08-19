@@ -15,6 +15,7 @@ defmodule W2.TimeZoneDatabase do
     "Asia/Hanoi" => %{std_offset: 0, utc_offset: 25200, zone_abbr: "ICT"},
     "Asia/Ho_Chi_Minh" => %{std_offset: 0, utc_offset: 25200, zone_abbr: "ICT"},
     "Asia/Busan" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "KST"},
+    "Asia/Seoul" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "KST"},
     "Asia/Tokyo" => %{std_offset: 0, utc_offset: 28800, zone_abbr: "JST"}
   }
 
