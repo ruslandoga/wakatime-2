@@ -48,7 +48,7 @@ defmodule W2.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:benchee, "~> 1.1", only: [:bench]},
       {:rexbug, "~> 1.0"},
-      {:sentry, "~> 10.6.0"},
+      {:sentry, "~> 10.7.0"},
       {:finch, "~> 0.18.0"},
       {:phoenix_bakery, "~> 0.1.0", runtime: false}
     ]
