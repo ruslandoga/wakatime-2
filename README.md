@@ -16,7 +16,6 @@ $ docker run -d \
   -e BACKBLAZE_SECRET_ACCESS_KEY=... \
   -e SENTRY_DSN=... \
   -e SECRET_KEY_BASE=... \
-  -e RELEASE_COOKIE=... \
   -e PHX_HOST=... \
   -e PHX_SERVER=true \
   -e PORT=9000 \
