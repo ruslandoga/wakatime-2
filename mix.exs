@@ -40,7 +40,7 @@ defmodule W2.MixProject do
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       # TODO bump on release to {:phoenix_live_view, "~> 1.0.0"},
-      {:phoenix_live_view, "~> 1.0.0-rc.5", override: true},
+      {:phoenix_live_view, "~> 1.0.0-rc.6", override: true},
       {:floki, ">= 0.30.0", only: :test},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
@@ -50,7 +50,8 @@ defmodule W2.MixProject do
       {:rexbug, "~> 1.0"},
       {:sentry, "~> 10.7.0"},
       {:finch, "~> 0.19.0"},
-      {:phoenix_bakery, "~> 0.1.0", runtime: false}
+      {:phoenix_bakery, "~> 0.1.0", runtime: false},
+      {:tz, "~> 0.28.1"}
     ]
   end
 
