@@ -37,36 +37,46 @@ config :sentry,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]
 
-config :elixir, :time_zone_database, W2.TimeZoneDatabase
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
 
 # TODO don't hardcode, but read from env vars
 config :w2,
   relocations: [
-    {~D[0000-01-01], "Europe/Moscow"},
+    {~D[2022-01-01], "Europe/Moscow"},
     {~D[2022-08-28], "Asia/Tbilisi"},
     {~D[2022-10-08], "Asia/Bangkok"},
     {~D[2022-11-04], "Asia/Kuala_Lumpur"},
     {~D[2022-11-30], "Asia/Bangkok"},
+    # Taipei -> Taichung -> Kaohsiung -> Checheng -> Taimali -> Taitung -> Taipei
     {~D[2022-12-17], "Asia/Taipei"},
     {~D[2022-12-28], "Asia/Hong_Kong"},
-    {~D[2023-01-06], "Asia/Hanoi"},
+    # Hanoi
+    {~D[2023-01-06], "Asia/Ho_Chi_Minh"},
     {~D[2023-02-03], "Asia/Bangkok"},
     {~D[2023-03-18], "Asia/Ho_Chi_Minh"},
     {~D[2023-03-30], "Asia/Bangkok"},
     {~D[2023-05-13], "Asia/Kuala_Lumpur"},
-    {~D[2023-07-01], "Asia/Chiang_Mai"},
+    # Chiang Mai -> Mae Hong Son -> Chiang Mai -> Bangkok
+    {~D[2023-07-01], "Asia/Bangkok"},
     {~D[2023-09-28], "Asia/Kuala_Lumpur"},
-    {~D[2023-10-27], "Asia/Busan"},
+    # Busan
+    {~D[2023-10-27], "Asia/Seoul"},
+    # Taipei -> Toucheng -> Luodong -> Hualein -> Taipei
     {~D[2023-11-30], "Asia/Taipei"},
-    {~D[2023-12-18], "Asia/Penang"},
+    # Penang
+    {~D[2023-12-18], "Asia/Kuala_Lumpur"},
+    # Tokyo -> Nagoya -> Kyoto -> Osaka -> Tokyo -> Osaka -> Kyoto -> Fukuoka
     {~D[2023-12-31], "Asia/Tokyo"},
     {~D[2024-01-30], "Asia/Seoul"},
     {~D[2024-02-03], "Europe/Moscow"},
     {~D[2024-02-13], "Asia/Kuala_Lumpur"},
-    {~D[2024-04-30], "Asia/Chiang_Mai"},
-    {~D[2024-07-28], "Asia/Hanoi"},
+    # Chiang Mai -> Mae Hong Son -> Chiang Mai
+    {~D[2024-04-30], "Asia/Bangkok"},
+    # Hanoi
+    {~D[2024-07-28], "Asia/Ho_Chi_Minh"},
     {~D[2024-08-06], "Asia/Seoul"},
-    {~D[2024-08-13], "Asia/Chiang_Mai"}
+    # Chiang Mai
+    {~D[2024-08-13], "Asia/Bangkok"}
   ]
 
 # Import environment specific config. This must remain at the bottom

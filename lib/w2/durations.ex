@@ -19,11 +19,11 @@ defmodule W2.Durations do
 
       iex> relocations = [{~D[2002-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
       iex> to_local(~N[2022-08-29 14:05:20.134483], relocations)
-      #DateTime<2022-08-29 18:05:20.134483+04:00 GET Asia/Tbilisi>
+      #DateTime<2022-08-29 18:05:20.134483+04:00 +04 Asia/Tbilisi>
 
       iex> relocations = [{~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
       iex> to_local(~N[2022-10-09 14:05:20.134483], relocations)
-      #DateTime<2022-10-09 21:05:20.134483+07:00 ICT Asia/Bangkok>
+      #DateTime<2022-10-09 21:05:20.134483+07:00 +07 Asia/Bangkok>
 
   """
   def to_local(

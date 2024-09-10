@@ -50,7 +50,8 @@ defmodule W2.MixProject do
       {:rexbug, "~> 1.0"},
       {:sentry, "~> 10.7.0"},
       {:finch, "~> 0.19.0"},
-      {:phoenix_bakery, "~> 0.1.0", runtime: false}
+      {:phoenix_bakery, "~> 0.1.0", runtime: false},
+      {:tz, "~> 0.28.1"}
     ]
   end
 
