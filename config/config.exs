@@ -29,8 +29,7 @@ config :phoenix,
   json_library: Jason,
   static_compressors: [
     PhoenixBakery.Gzip,
-    PhoenixBakery.Brotli,
-    PhoenixBakery.Zstd
+    PhoenixBakery.Brotli
   ]
 
 config :sentry,
