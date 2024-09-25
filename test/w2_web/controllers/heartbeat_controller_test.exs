@@ -29,7 +29,6 @@ defmodule W2Web.HeartbeatControllerTest do
       assert conn.resp_body == "Unauthorized"
       assert get_resp_header(conn, "www-authenticate") == ["Basic"]
       assert Repo.aggregate("heartbeats", :count) == 0
-      assert Repo.aggregate("durations_300", :count) == 0
     end
 
     test "with invalid api_key", %{conn: conn} do
@@ -42,7 +41,6 @@ defmodule W2Web.HeartbeatControllerTest do
       assert conn.resp_body == "Unauthorized"
       assert get_resp_header(conn, "www-authenticate") == ["Basic"]
       assert Repo.aggregate("heartbeats", :count) == 0
-      assert Repo.aggregate("durations_300", :count) == 0
     end
 
     test "with valid api_key", %{conn: conn} do
@@ -54,7 +52,6 @@ defmodule W2Web.HeartbeatControllerTest do
 
       assert json_response(conn, 201) == %{"responses" => [[nil, 201]]}
       assert Repo.aggregate("heartbeats", :count) == 1
-      assert Repo.aggregate("durations_300", :count) == 1
     end
   end
 end

@@ -6,10 +6,6 @@ defmodule W2.Durations do
   alias W2.Repo
   import Ecto.Query
 
-  def duration_table(interval \\ W2.interval()) do
-    "durations_#{interval}"
-  end
-
   @doc """
   Translates naive datetime to local timezone depending on the date and relocations.
 
@@ -53,69 +49,135 @@ defmodule W2.Durations do
   Aggregates durations into a project timeline.
   """
   def fetch_timeline(opts \\ []) do
-    query =
-      duration_table()
+    heartbeats =
+      "heartbeats"
       |> date_range(opts)
       |> project(opts)
       |> branch(opts)
       |> file(opts)
-      # TODO
-      |> where([d], not is_nil(d.project))
+      |> order_by([h], h.time)
+      |> select([h], {h.project, type(h.time, :integer)})
+      |> Repo.all()
 
-    query =
-      case opts[:group] do
-        :branch ->
-          query
-          |> select([d], [
-            d.project,
-            d.branch,
-            type(min(d.start), :integer),
-            type(min(d.start) + sum(d.length), :integer)
-          ])
-          |> group_by([d], [d.id, d.project, d.branch])
+    interval = opts[:interval] || W2.interval()
+    process_timeline(heartbeats, interval)
+  end
 
-        :file ->
-          query
-          |> select([d], [
-            d.project,
-            d.branch,
-            d.entity,
-            type(d.start, :integer),
-            type(d.start + d.length, :integer)
-          ])
-          |> group_by([d], [d.id, d.project, d.branch, d.entity])
+  defp process_timeline([{project, time} | heartbeats], duration_interval) do
+    process_timeline(heartbeats, project, time, time, [], duration_interval)
+  end
 
-        _default_is_project ->
-          query
-          |> select([d], [
-            d.project,
-            type(min(d.start), :integer),
-            type(min(d.start) + sum(d.length), :integer)
-          ])
-          |> group_by([d], [d.id, d.project])
-      end
+  defp process_timeline([], _duration_interval), do: []
 
-    Repo.all(query)
+  defp process_timeline(
+         [{project, time} | heartbeats],
+         prev_project,
+         first_time,
+         prev_time,
+         acc,
+         duration_interval
+       ) do
+    cond do
+      project != prev_project ->
+        last_time = if time - prev_time >= duration_interval, do: prev_time, else: time
+        acc = [[prev_project, first_time, last_time] | acc]
+        process_timeline(heartbeats, project, time, time, acc, duration_interval)
+
+      time - prev_time >= duration_interval ->
+        acc = [[prev_project, first_time, prev_time] | acc]
+        process_timeline(heartbeats, prev_project, time, time, acc, duration_interval)
+
+      true ->
+        process_timeline(heartbeats, prev_project, first_time, time, acc, duration_interval)
+    end
+  end
+
+  defp process_timeline([], prev_project, first_time, prev_time, acc, _duration_interval) do
+    :lists.reverse([[prev_project, first_time, prev_time] | acc])
+  end
+
+  defmacrop duration(interval) do
+    quote do
+      fragment(
+        "coalesce(sum(case when next - time >= ? then 0 else next - time end), 0)",
+        unquote(interval)
+      )
+    end
   end
 
   @doc """
   Aggregates durations into time spent per project.
   """
   def fetch_projects(opts \\ []) do
-    duration_table()
-    |> select([d], [d.project, sum(d.length)])
+    interval = opts[:interval] || W2.interval()
+
+    "heartbeats"
     |> date_range(opts)
-    |> group_by([d], d.project)
-    |> order_by([d], desc: sum(d.length))
-    # TODO
-    |> where([d], not is_nil(d.project))
+    |> order_by([h], h.time)
+    |> windows([h], time: [order_by: h.time])
+    |> select([h], %{project: h.project, time: h.time, next: over(lead(h.time), :time)})
+    |> subquery()
+    |> select([h], [h.project, selected_as(duration(^interval), :duration)])
+    |> group_by([h], h.project)
+    |> order_by([h], desc: selected_as(:duration))
+    |> Repo.all()
+  end
+
+  @doc """
+  Aggregates durations into time spent per branch.
+  """
+  def fetch_branches(opts \\ []) do
+    interval = opts[:interval] || W2.interval()
+
+    "heartbeats"
+    |> date_range(opts)
+    |> order_by([h], h.time)
+    |> windows([h], time: [order_by: h.time])
+    |> select([h], %{
+      project: h.project,
+      branch: h.branch,
+      time: h.time,
+      next: over(lead(h.time), :time)
+    })
+    |> subquery()
+    |> project(opts)
+    |> select([h], [h.project, h.branch, selected_as(duration(^interval), :duration)])
+    |> group_by([h], [h.project, h.branch])
+    |> order_by([h], desc: selected_as(:duration))
+    |> limit(50)
+    |> Repo.all()
+  end
+
+  @doc """
+  Aggregates durations into time spent per file.
+  """
+  def fetch_files(opts \\ []) do
+    interval = opts[:interval] || W2.interval()
+
+    "heartbeats"
+    |> date_range(opts)
+    |> order_by([h], h.time)
+    |> windows([h], time: [order_by: h.time])
+    |> select([h], %{
+      project: h.project,
+      entity: h.entity,
+      time: h.time,
+      next: over(lead(h.time), :time)
+    })
+    |> subquery()
+    |> project(opts)
+    |> branch(opts)
+    |> select([h], [h.project, h.entity, selected_as(duration(^interval), :duration)])
+    |> group_by([h], [h.project, h.entity])
+    |> order_by([h], desc: selected_as(:duration))
+    |> limit(50)
     |> Repo.all()
   end
 
   defp date_range(query, opts) do
     # TODO where(query, [d], d.start - d.length > ^time(from))
-    query = if from = opts[:from], do: where(query, [d], d.start > ^time(from)), else: query
-    if to = opts[:to], do: where(query, [d], d.start < ^time(to)), else: query
+    query = if from = opts[:from], do: where(query, [h], h.time > ^time(from)), else: query
+    if to = opts[:to], do: where(query, [h], h.time < ^time(to)), else: query
   end
 
   defp project(query, opts) do
@@ -129,45 +191,10 @@ defmodule W2.Durations do
   defp file(query, opts) do
     if file = opts[:file] do
       pattern = "%" <> file
-      where(query, [d], like(d.entity, ^pattern))
+      where(query, [h], like(h.entity, ^pattern))
     else
       query
     end
-  end
-
-  @doc """
-  Aggregates durations into time spent per branch.
-  """
-  def fetch_branches(opts \\ []) do
-    duration_table()
-    |> date_range(opts)
-    |> project(opts)
-    |> order_by([d], desc: sum(d.length))
-    |> group_by([d], [d.project, d.branch])
-    |> select([d], [d.project, d.branch, sum(d.length)])
-    # TODO
-    |> where([d], not is_nil(d.branch))
-    |> where([d], not is_nil(d.project))
-    |> limit(50)
-    |> Repo.all()
-  end
-
-  @doc """
-  Aggregates durations into time spent per file.
-  """
-  def fetch_files(opts \\ []) do
-    duration_table()
-    |> date_range(opts)
-    |> project(opts)
-    |> branch(opts)
-    |> order_by([d], desc: sum(d.length))
-    |> group_by([d], [d.project, d.entity])
-    # TODO
-    |> where([d], not is_nil(d.entity))
-    |> where([d], not is_nil(d.project))
-    |> select([d], [d.project, d.entity, sum(d.length)])
-    |> limit(50)
-    |> Repo.all()
   end
 
   @h24 24 * 60 * 60
@@ -319,8 +346,9 @@ defmodule W2.Durations do
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
 
-  defp time(%NaiveDateTime{} = dt),
-    do: dt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+  defp time(%NaiveDateTime{} = dt) do
+    dt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
+  end
 
   defp time(unix) when is_integer(unix) or is_float(unix), do: unix
   defp time(%Date{} = date), do: time(DateTime.new!(date, Time.new!(0, 0, 0)))

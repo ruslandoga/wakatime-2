@@ -21,7 +21,7 @@ if System.get_env("PHX_SERVER") do
 end
 
 # same as timeout in https://wakatime.com/developers#durations
-config :w2, interval: 300
+config :w2, interval: String.to_integer(System.get_env("DURATION_INTERVAL") || "300")
 
 if config_env() == :prod do
   config :w2, api_key: System.fetch_env!("API_KEY")
@@ -48,8 +48,7 @@ if config_env() == :prod do
     # https://litestream.io/tips/#busy-timeout
     busy_timeout: 5000,
     cache_size: -2000,
-    migrate: true,
-    backfill: true
+    migrate: true
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
