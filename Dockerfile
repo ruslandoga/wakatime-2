@@ -53,8 +53,8 @@ RUN adduser -S -H -u 999 -G nogroup wakatime
 
 RUN apk add --no-cache --update openssl libgcc libstdc++ ncurses
 
-COPY --from=build --chmod=a+rX /app/_build/prod/rel/w2 /app
-COPY --from=litestream --chmod=a+X /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=build /app/_build/prod/rel/w2 /app
+COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
 COPY litestream.yml /etc/litestream.yml
 
 RUN mkdir -p /data && chmod ugo+rw -R /data
