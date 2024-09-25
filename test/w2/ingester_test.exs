@@ -1,6 +1,6 @@
 defmodule W2.IngesterTest do
   use W2.DataCase
-  alias W2.Ingester
+  alias W2.{Ingester, Durations}
   alias W2.Ingester.Heartbeat
 
   test "insert and read back" do
@@ -50,16 +50,8 @@ defmodule W2.IngesterTest do
                }
              ]
 
-    assert all_durations() == [
-             %{
-               id: 1,
-               start: 1_653_576_798.5958169,
-               length: 0.0,
-               project: "w1",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/lib/w1/endpoint.ex"
-             }
-           ]
+    assert Durations.fetch_timeline() == [["w1", 1_653_576_798, 1_653_576_798]]
+    assert Durations.fetch_projects() == [["w1", 0]]
   end
 
   test "project switch" do
@@ -71,24 +63,12 @@ defmodule W2.IngesterTest do
       %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
     ])
 
-    assert all_durations() == [
-             %{
-               id: 1,
-               start: unix(~U[2022-01-01 12:04:12Z]),
-               length: 7,
-               project: "w1",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/test/endpoint_test.exs"
-             },
-             %{
-               id: 1,
-               start: unix(~U[2022-01-01 12:04:19Z]),
-               length: 60,
-               project: "w2",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/test/endpoint_test.exs"
-             }
+    assert Durations.fetch_timeline() == [
+             ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])],
+             ["w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]
            ]
+
+    assert Durations.fetch_projects() == [["w2", 60.0], ["w1", 7.0]]
   end
 
   test "hour switch" do
@@ -98,21 +78,14 @@ defmodule W2.IngesterTest do
       %{"time" => unix(~U[2022-01-01 13:00:18Z]), "project" => "w1"}
     ])
 
-    assert all_durations() == [
-             %{
-               id: 1,
-               start: unix(~U[2022-01-01 12:58:12Z]),
-               length: 126,
-               project: "w1",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/test/endpoint_test.exs"
-             }
+    assert Durations.fetch_timeline() == [
+             ["w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])]
            ]
+
+    assert Durations.fetch_projects() == [["w1", 126.0]]
   end
 
   test "duration break" do
-    # Rexbug.start("W2.Ingester :: return", msgs: 10000)
-
     insert_heartbeats([
       %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
       %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
@@ -121,27 +94,11 @@ defmodule W2.IngesterTest do
       %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
     ])
 
-    assert all_durations() == [
-             %{
-               id: 1,
-               start: unix(~U[2022-01-01 12:04:12Z]),
-               length: 60,
-               project: "w1",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/test/endpoint_test.exs"
-             },
-             %{
-               id: 2,
-               start: unix(~U[2022-01-01 13:04:18Z]),
-               length: 61,
-               project: "w1",
-               branch: "add-ingester",
-               entity: "/Users/q/Developer/copycat/w1/test/endpoint_test.exs"
-             }
+    assert Durations.fetch_timeline() == [
+             ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
+             ["w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
            ]
-  end
 
-  defp all_durations do
-    all("durations_300", [:id, :start, :length, :project, :branch, :entity])
+    assert Durations.fetch_projects() == [["w1", 60 + 61]]
   end
 end

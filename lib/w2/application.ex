@@ -9,7 +9,6 @@ defmodule W2.Application do
     children = [
       W2.Repo,
       {W2.Release.Migrator, migrate: repo_config[:migrate]},
-      {W2.Release.Backfill, backfill: repo_config[:backfill]},
       W2Web.Telemetry,
       {Phoenix.PubSub, name: W2.PubSub},
       W2Web.Endpoint
