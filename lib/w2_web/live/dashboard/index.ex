@@ -148,7 +148,7 @@ defmodule W2Web.DashboardLive.Index do
             extra_header_class="bg-blue-400"
           >
             <.time_table_row class="odd:bg-blue-100" time={time} dimmed={dimmed} qs={qs}>
-              <.prefix_span prefix={project} value={file} />
+              <.prefix_span prefix={project} value={format_file(file)} />
             </.time_table_row>
           </.time_table>
         </div>
@@ -244,6 +244,15 @@ defmodule W2Web.DashboardLive.Index do
     ~H"""
     <span class="opacity-50"><%= @prefix %>/</span><span><%= @value %></span>
     """
+  end
+
+  defp format_file(file) do
+    case String.split(file, "/") do
+      [] -> file
+      [file] -> file
+      [f1, f2] -> Path.join(f1, f2)
+      [f1 | rest] -> Path.join([f1, "…", List.last(rest)])
+    end
   end
 
   @impl true
