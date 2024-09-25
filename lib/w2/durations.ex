@@ -49,16 +49,24 @@ defmodule W2.Durations do
   Aggregates durations into a project timeline.
   """
   def fetch_timeline(opts \\ []) do
-    heartbeats =
+    query =
       "heartbeats"
       |> date_range(opts)
-      |> project(opts)
       |> branch(opts)
       |> file(opts)
       |> order_by([h], h.time)
-      |> select([h], {h.project, type(h.time, :integer)})
-      |> Repo.all()
+      |> select([h], {coalesce(h.project, h.category), type(h.time, :integer)})
 
+    query =
+      case opts[:project] do
+        nil -> query
+        "(none)" -> where(query, [h], is_nil(h.project))
+        "coding" -> where(query, [h], is_nil(h.project) and h.category == "coding")
+        "browsing" -> where(query, [h], is_nil(h.project) and h.category == "browsing")
+        project -> where(query, project: ^project)
+      end
+
+    heartbeats = Repo.all(query)
     interval = opts[:interval] || W2.interval()
     process_timeline(heartbeats, interval)
   end
@@ -115,7 +123,11 @@ defmodule W2.Durations do
     |> date_range(opts)
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
-    |> select([h], %{project: h.project, time: h.time, next: over(lead(h.time), :time)})
+    |> select([h], %{
+      project: coalesce(h.project, h.category),
+      time: h.time,
+      next: over(lead(h.time), :time)
+    })
     |> subquery()
     |> select([h], [h.project, selected_as(duration(^interval), :duration)])
     |> group_by([h], h.project)
@@ -130,12 +142,13 @@ defmodule W2.Durations do
     interval = opts[:interval] || W2.interval()
 
     "heartbeats"
+    |> where(type: "file")
     |> date_range(opts)
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
     |> select([h], %{
-      project: h.project,
-      branch: h.branch,
+      project: coalesce(h.project, h.category),
+      branch: coalesce(h.branch, "(none)"),
       time: h.time,
       next: over(lead(h.time), :time)
     })
@@ -159,8 +172,8 @@ defmodule W2.Durations do
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
     |> select([h], %{
-      project: h.project,
-      entity: h.entity,
+      project: coalesce(h.project, h.category),
+      entity: coalesce(h.entity, "(none)"),
       time: h.time,
       next: over(lead(h.time), :time)
     })
@@ -181,19 +194,32 @@ defmodule W2.Durations do
   end
 
   defp project(query, opts) do
-    if project = opts[:project], do: where(query, project: ^project), else: query
+    case opts[:project] do
+      nil -> query
+      "(none)" -> where(query, [h], is_nil(h.project))
+      project -> where(query, project: ^project)
+    end
   end
 
   defp branch(query, opts) do
-    if branch = opts[:branch], do: where(query, branch: ^branch), else: query
+    case opts[:branch] do
+      nil -> query
+      "(none)" -> where(query, [h], is_nil(h.branch))
+      branch -> where(query, branch: ^branch)
+    end
   end
 
   defp file(query, opts) do
-    if file = opts[:file] do
-      pattern = "%" <> file
-      where(query, [h], like(h.entity, ^pattern))
-    else
-      query
+    case opts[:file] do
+      nil ->
+        query
+
+      "(none)" ->
+        where(query, [h], is_nil(h.entity))
+
+      file ->
+        pattern = "%" <> file
+        where(query, [h], like(h.entity, ^pattern))
     end
   end
 
