@@ -246,8 +246,20 @@ defmodule W2Web.DashboardLive.Index do
     """
   end
 
+  defp format_file("https://github.com/" <> path) do
+    case String.split(path, "/") do
+      [_org, _repo, type, id] -> Path.join(type, id)
+      _ -> format_file(path)
+    end
+  end
+
+  defp format_file("https://" <> _rest = url) do
+    %URI{host: host, path: path} = URI.parse(url)
+    format_file((host || "") <> (path || ""))
+  end
+
   defp format_file(file) do
-    case String.split(file, "/") do
+    case String.split(file, "/", trim: true) do
       [] -> file
       [file] -> file
       [f1, f2] -> Path.join(f1, f2)
