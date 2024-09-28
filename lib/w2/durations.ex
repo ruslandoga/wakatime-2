@@ -3,7 +3,6 @@ defmodule W2.Durations do
   Contains functions to aggregate durations
   """
 
-  alias Hex.API.Key
   alias W2.Repo
   import Ecto.Query
 
