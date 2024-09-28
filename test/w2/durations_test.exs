@@ -18,8 +18,8 @@ defmodule W2.DurationsTest do
       to = ~U[2022-01-01 12:06:00Z]
 
       assert Durations.fetch_timeline(from: from, to: to) == [
-               ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])],
-               ["w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]
+               {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])},
+               {"w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])}
              ]
     end
 
@@ -36,8 +36,8 @@ defmodule W2.DurationsTest do
       to = ~U[2022-01-01 14:00:00Z]
 
       assert Durations.fetch_timeline(from: from, to: to) == [
-               ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
-               ["w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
+               {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])},
+               {"w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])}
              ]
     end
   end
@@ -55,7 +55,10 @@ defmodule W2.DurationsTest do
       from = ~U[2022-01-01 12:04:00Z]
       to = ~U[2022-01-01 12:06:00Z]
 
-      assert Durations.fetch_projects(from: from, to: to) == [["w2", 60.0], ["w1", 7.0]]
+      assert Durations.fetch_projects(from: from, to: to) == [
+               %{type: "file", category: "coding", project: "w2", duration: 60.0},
+               %{type: "file", category: "coding", project: "w1", duration: 7.0}
+             ]
     end
 
     test "duration break" do
@@ -70,7 +73,9 @@ defmodule W2.DurationsTest do
       from = ~U[2022-01-01 12:00:00Z]
       to = ~U[2022-01-01 14:00:00Z]
 
-      assert Durations.fetch_projects(from: from, to: to) == [["w1", 121.0]]
+      assert Durations.fetch_projects(from: from, to: to) == [
+               %{type: "file", category: "coding", project: "w1", duration: 121.0}
+             ]
     end
   end
 
@@ -88,12 +93,12 @@ defmodule W2.DurationsTest do
     to = ~U[2022-01-01 14:00:00Z]
 
     assert Durations.fetch_branches(project: "w2", from: from, to: to) == [
-             ["w2", "a-feature", 121],
-             ["w2", "cool-feature", 60]
+             %{branch: "a-feature", project: "w2", duration: 121.0},
+             %{branch: "cool-feature", project: "w2", duration: 60.0}
            ]
   end
 
-  test "fetch_files/1" do
+  test "fetch_entities/1" do
     insert_heartbeats([
       %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w2", "entity" => "lib/router.ex"},
       %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "entity" => "lib/api.ex"},
@@ -108,11 +113,35 @@ defmodule W2.DurationsTest do
     from = ~U[2022-01-01 12:00:00Z]
     to = ~U[2022-01-01 14:00:00Z]
 
-    assert Durations.fetch_files(project: "w2", from: from, to: to) == [
-             ["w2", "lib/router.ex", 120],
-             ["w2", "lib/api.ex", 61],
-             ["w2", "lib/api2.ex", 60],
-             ["w2", "lib/app.ex", 0]
+    assert Durations.fetch_entities(project: "w2", from: from, to: to) == [
+             %{
+               type: "file",
+               category: "coding",
+               project: "w2",
+               duration: 120.0,
+               entity: "lib/router.ex"
+             },
+             %{
+               type: "file",
+               category: "coding",
+               project: "w2",
+               duration: 61.0,
+               entity: "lib/api.ex"
+             },
+             %{
+               type: "file",
+               category: "coding",
+               project: "w2",
+               duration: 60.0,
+               entity: "lib/api2.ex"
+             },
+             %{
+               type: "file",
+               category: "coding",
+               project: "w2",
+               duration: 0,
+               entity: "lib/app.ex"
+             }
            ]
   end
 
@@ -191,7 +220,7 @@ defmodule W2.DurationsTest do
       to = ~U[2022-01-01 12:06:00Z]
 
       assert Durations.fetch_bucket_data(from, to) == [
-               [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 7, "w2" => 60}]
+               {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 7, "w2" => 60}}
              ]
     end
 
@@ -207,8 +236,8 @@ defmodule W2.DurationsTest do
 
       assert Durations.fetch_bucket_data(from, to) ==
                [
-                 [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 108}],
-                 [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 134}]
+                 {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 108}},
+                 {unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 134}}
                ]
     end
 
@@ -226,8 +255,8 @@ defmodule W2.DurationsTest do
 
       assert Durations.fetch_bucket_data(from, to) ==
                [
-                 [unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 60}],
-                 [unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 61}]
+                 {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 60}},
+                 {unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 61}}
                ]
     end
   end

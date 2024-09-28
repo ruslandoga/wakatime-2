@@ -50,8 +50,11 @@ defmodule W2.IngesterTest do
                }
              ]
 
-    assert Durations.fetch_timeline() == [["w1", 1_653_576_798, 1_653_576_798]]
-    assert Durations.fetch_projects() == [["w1", 0]]
+    assert Durations.fetch_timeline() == [{"w1", 1_653_576_798, 1_653_576_798}]
+
+    assert Durations.fetch_projects() == [
+             %{project: "w1", duration: 0, category: "coding", type: "file"}
+           ]
   end
 
   test "project switch" do
@@ -64,11 +67,14 @@ defmodule W2.IngesterTest do
     ])
 
     assert Durations.fetch_timeline() == [
-             ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])],
-             ["w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])]
+             {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])},
+             {"w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])}
            ]
 
-    assert Durations.fetch_projects() == [["w2", 60.0], ["w1", 7.0]]
+    assert Durations.fetch_projects() == [
+             %{project: "w2", duration: 60.0, category: "coding", type: "file"},
+             %{project: "w1", duration: 7.0, category: "coding", type: "file"}
+           ]
   end
 
   test "hour switch" do
@@ -79,10 +85,12 @@ defmodule W2.IngesterTest do
     ])
 
     assert Durations.fetch_timeline() == [
-             ["w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])]
+             {"w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])}
            ]
 
-    assert Durations.fetch_projects() == [["w1", 126.0]]
+    assert Durations.fetch_projects() == [
+             %{project: "w1", duration: 126.0, category: "coding", type: "file"}
+           ]
   end
 
   test "duration break" do
@@ -95,10 +103,12 @@ defmodule W2.IngesterTest do
     ])
 
     assert Durations.fetch_timeline() == [
-             ["w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])],
-             ["w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])]
+             {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])},
+             {"w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])}
            ]
 
-    assert Durations.fetch_projects() == [["w1", 60 + 61]]
+    assert Durations.fetch_projects() == [
+             %{project: "w1", duration: 60 + 61, category: "coding", type: "file"}
+           ]
   end
 end

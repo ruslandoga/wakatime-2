@@ -1,6 +1,8 @@
 defmodule W2Web.Router do
   use W2Web, :router
 
+  # TODO rate limit
+
   pipeline :browser do
     plug :accepts, ["html", "svg"]
     plug :put_root_layout, html: {W2Web.Layouts, :root}
@@ -31,15 +33,6 @@ defmodule W2Web.Router do
     post "/heartbeats/v1/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/users/current/heartbeats.bulk", HeartbeatController, :create
     post "/plugins/errors", HeartbeatController, :ignore
-  end
-
-  # TODO /api?
-  scope "/api", W2Web do
-    pipe_through :api
-    get "/timeline", APIController, :timeline
-    get "/projects", APIController, :timeline
-    # /branches
-    # /files
   end
 
   @doc false

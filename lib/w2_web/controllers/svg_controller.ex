@@ -4,6 +4,8 @@ defmodule W2Web.SVGController do
 
   @days 7
 
+  # TODO cache
+
   # TODO use params
   def barchart(conn, params) do
     # TODO div

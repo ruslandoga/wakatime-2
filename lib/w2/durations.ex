@@ -9,11 +9,11 @@ defmodule W2.Durations do
   @doc """
   Translates naive datetime to local timezone depending on the date and relocations.
 
-      iex> relocations = [{~D[2002-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}]
+      iex> relocations = [{~D[2022-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}]
       iex> to_local(~N[2022-07-08 14:05:20.134483], relocations)
       #DateTime<2022-07-08 17:05:20.134483+03:00 MSK Europe/Moscow>
 
-      iex> relocations = [{~D[2002-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
+      iex> relocations = [{~D[2022-01-01], "Europe/Moscow"}, {~D[2022-08-28], "Asia/Tbilisi"}, {~D[2022-10-08], "Asia/Bangkok"}]
       iex> to_local(~N[2022-08-29 14:05:20.134483], relocations)
       #DateTime<2022-08-29 18:05:20.134483+04:00 +04 Asia/Tbilisi>
 
@@ -48,23 +48,35 @@ defmodule W2.Durations do
   @doc """
   Aggregates durations into a project timeline.
   """
+  @spec fetch_timeline([
+          {:project, String.t()}
+          | {:category, String.t()}
+          | {:type, String.t()}
+          | {:editor, String.t()}
+          | {:branch, String.t()}
+          | {:entity, String.t()}
+          | {:from, Date.t()}
+          | {:to, Date.t()}
+          | {:interval, pos_integer}
+        ]) :: [
+          {
+            project :: String.t(),
+            start_time :: pos_integer,
+            end_time :: pos_integer
+          }
+        ]
   def fetch_timeline(opts \\ []) do
     query =
       "heartbeats"
       |> date_range(opts)
+      |> category(opts)
+      |> type(opts)
       |> branch(opts)
-      |> file(opts)
+      |> entity(opts)
+      |> project(opts)
+      |> editor(opts)
       |> order_by([h], h.time)
-      |> select([h], {coalesce(h.project, h.category), type(h.time, :integer)})
-
-    query =
-      case opts[:project] do
-        nil -> query
-        "(none)" -> where(query, [h], is_nil(h.project))
-        "coding" -> where(query, [h], is_nil(h.project) and h.category == "coding")
-        "browsing" -> where(query, [h], is_nil(h.project) and h.category == "browsing")
-        project -> where(query, project: ^project)
-      end
+      |> select([h], {coalesce(h.project, "(none)"), type(h.time, :integer)})
 
     heartbeats = Repo.all(query)
     interval = opts[:interval] || W2.interval()
@@ -88,11 +100,11 @@ defmodule W2.Durations do
     cond do
       project != prev_project ->
         last_time = if time - prev_time >= duration_interval, do: prev_time, else: time
-        acc = [[prev_project, first_time, last_time] | acc]
+        acc = [{prev_project, first_time, last_time} | acc]
         process_timeline(heartbeats, project, time, time, acc, duration_interval)
 
       time - prev_time >= duration_interval ->
-        acc = [[prev_project, first_time, prev_time] | acc]
+        acc = [{prev_project, first_time, prev_time} | acc]
         process_timeline(heartbeats, prev_project, time, time, acc, duration_interval)
 
       true ->
@@ -101,7 +113,7 @@ defmodule W2.Durations do
   end
 
   defp process_timeline([], prev_project, first_time, prev_time, acc, _duration_interval) do
-    :lists.reverse([[prev_project, first_time, prev_time] | acc])
+    :lists.reverse([{prev_project, first_time, prev_time} | acc])
   end
 
   defmacrop duration(interval) do
@@ -116,6 +128,21 @@ defmodule W2.Durations do
   @doc """
   Aggregates durations into time spent per project.
   """
+  @spec fetch_projects([
+          {:category, String.t()}
+          | {:type, String.t()}
+          | {:editor, String.t()}
+          | {:from, Date.t()}
+          | {:to, Date.t()}
+          | {:interval, pos_integer}
+        ]) :: [
+          %{
+            project: String.t(),
+            category: String.t(),
+            type: String.t(),
+            duration: non_neg_integer
+          }
+        ]
   def fetch_projects(opts \\ []) do
     interval = opts[:interval] || W2.interval()
 
@@ -124,12 +151,24 @@ defmodule W2.Durations do
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
     |> select([h], %{
-      project: coalesce(h.project, h.category),
+      project: coalesce(h.project, "(none)"),
+      category: h.category,
+      type: h.type,
       time: h.time,
-      next: over(lead(h.time), :time)
+      next: over(lead(h.time), :time),
+      editor: h.editor,
+      type: h.type
     })
     |> subquery()
-    |> select([h], [h.project, selected_as(duration(^interval), :duration)])
+    |> category(opts)
+    |> type(opts)
+    |> editor(opts)
+    |> select([h], %{
+      project: h.project,
+      category: h.category,
+      type: h.type,
+      duration: selected_as(duration(^interval), :duration)
+    })
     |> group_by([h], h.project)
     |> order_by([h], desc: selected_as(:duration))
     |> Repo.all()
@@ -138,23 +177,31 @@ defmodule W2.Durations do
   @doc """
   Aggregates durations into time spent per branch.
   """
+  @spec fetch_branches([
+          {:project, String.t()} | {:from, Date.t()} | {:to, Date.t()} | {:interval, pos_integer}
+        ]) :: [%{project: String.t(), branch: String.t(), duration: non_neg_integer}]
   def fetch_branches(opts \\ []) do
     interval = opts[:interval] || W2.interval()
 
     "heartbeats"
-    |> where(type: "file")
+    |> where([h], not is_nil(h.branch))
+    |> where([h], h.branch != "<<LAST_BRANCH>>")
     |> date_range(opts)
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
     |> select([h], %{
-      project: coalesce(h.project, h.category),
-      branch: coalesce(h.branch, "(none)"),
+      project: coalesce(h.project, "(none)"),
+      branch: h.branch,
       time: h.time,
       next: over(lead(h.time), :time)
     })
     |> subquery()
     |> project(opts)
-    |> select([h], [h.project, h.branch, selected_as(duration(^interval), :duration)])
+    |> select([h], %{
+      project: h.project,
+      branch: h.branch,
+      duration: selected_as(duration(^interval), :duration)
+    })
     |> group_by([h], [h.project, h.branch])
     |> order_by([h], desc: selected_as(:duration))
     |> limit(50)
@@ -164,7 +211,23 @@ defmodule W2.Durations do
   @doc """
   Aggregates durations into time spent per file.
   """
-  def fetch_files(opts \\ []) do
+  @spec fetch_entities([
+          {:project, String.t()}
+          | {:category, String.t()}
+          | {:type, String.t()}
+          | {:editor, String.t()}
+          | {:branch, String.t()}
+          | {:from, Date.t()}
+          | {:to, Date.t()}
+          | {:interval, pos_integer}
+        ]) :: %{
+          project: String.t(),
+          category: String.t(),
+          type: String.t(),
+          entity: String.t(),
+          duration: non_neg_integer
+        }
+  def fetch_entities(opts \\ []) do
     interval = opts[:interval] || W2.interval()
 
     "heartbeats"
@@ -172,54 +235,105 @@ defmodule W2.Durations do
     |> order_by([h], h.time)
     |> windows([h], time: [order_by: h.time])
     |> select([h], %{
-      project: coalesce(h.project, h.category),
+      project: coalesce(h.project, "(none)"),
       entity: coalesce(h.entity, "(none)"),
+      category: h.category,
+      type: h.type,
       time: h.time,
-      next: over(lead(h.time), :time)
+      next: over(lead(h.time), :time),
+      editor: h.editor,
+      branch: h.branch
     })
     |> subquery()
     |> project(opts)
+    |> category(opts)
+    |> type(opts)
+    |> editor(opts)
     |> branch(opts)
-    |> select([h], [h.project, h.entity, selected_as(duration(^interval), :duration)])
+    |> select([h], %{
+      project: h.project,
+      entity: h.entity,
+      duration: selected_as(duration(^interval), :duration),
+      category: h.category,
+      type: h.type
+    })
     |> group_by([h], [h.project, h.entity])
     |> order_by([h], desc: selected_as(:duration))
     |> limit(50)
     |> Repo.all()
   end
 
+  @spec date_range(Ecto.Queryable.t(), [{:from, Date.t()} | {:to, Date.t()}]) ::
+          Ecto.Queryable.t()
   defp date_range(query, opts) do
-    # TODO where(query, [d], d.start - d.length > ^time(from))
-    query = if from = opts[:from], do: where(query, [h], h.time > ^time(from)), else: query
-    if to = opts[:to], do: where(query, [h], h.time < ^time(to)), else: query
+    query =
+      if from = Keyword.get(opts, :from) do
+        where(query, [h], h.time > ^time(from))
+      else
+        query
+      end
+
+    if to = Keyword.get(opts, :to) do
+      where(query, [h], h.time < ^time(to))
+    else
+      query
+    end
   end
 
+  @spec project(Ecto.Queryable.t(), [{:project, String.t()}]) :: Ecto.Queryable.t()
   defp project(query, opts) do
-    case opts[:project] do
+    case Keyword.get(opts, :project) do
       nil -> query
       "(none)" -> where(query, [h], is_nil(h.project))
       project -> where(query, project: ^project)
     end
   end
 
+  @spec project(Ecto.Queryable.t(), [{:branch, String.t()}]) :: Ecto.Queryable.t()
   defp branch(query, opts) do
-    case opts[:branch] do
+    case Keyword.get(opts, :branch) do
       nil -> query
-      "(none)" -> where(query, [h], is_nil(h.branch))
       branch -> where(query, branch: ^branch)
     end
   end
 
-  defp file(query, opts) do
-    case opts[:file] do
+  @spec entity(Ecto.Queryable.t(), [{:entity, String.t()}]) :: Ecto.Queryable.t()
+  defp entity(query, opts) do
+    case Keyword.get(opts, :file) do
       nil ->
         query
-
-      "(none)" ->
-        where(query, [h], is_nil(h.entity))
 
       file ->
         pattern = "%" <> file
         where(query, [h], like(h.entity, ^pattern))
+    end
+  end
+
+  @spec category(Ecto.Queryable.t(), [{:category, String.t()}]) :: Ecto.Queryable.t()
+  defp category(query, opts) do
+    case Keyword.get(opts, :category) do
+      nil -> query
+      category -> where(query, category: ^category)
+    end
+  end
+
+  @spec type(Ecto.Queryable.t(), [{:type, String.t()}]) :: Ecto.Queryable.t()
+  defp type(query, opts) do
+    case Keyword.get(opts, :type) do
+      nil -> query
+      type -> where(query, type: ^type)
+    end
+  end
+
+  @spec editor(Ecto.Queryable.t(), [{:editor, String.t()}]) :: Ecto.Queryable.t()
+  defp editor(query, opts) do
+    case Keyword.get(opts, :editor) do
+      nil ->
+        query
+
+      editor ->
+        pattern = editor <> "%"
+        where(query, [h], like(h.editor, ^pattern))
     end
   end
 
@@ -319,7 +433,7 @@ defmodule W2.Durations do
 
   # TODO
   @doc false
-  def bucket_totals2([[project, from, to] | rest], prev_bucket, interval, inner_acc, outer_acc) do
+  def bucket_totals2([{project, from, to} | rest], prev_bucket, interval, inner_acc, outer_acc) do
     cond do
       prev_bucket == bucket(from, interval) and prev_bucket == bucket(to, interval) ->
         inner_acc = Map.update(inner_acc, project, to - from, fn prev -> prev + to - from end)
@@ -334,7 +448,7 @@ defmodule W2.Durations do
           end)
 
         bucket_totals2(
-          [[project, clamped_to, to] | rest],
+          [{project, clamped_to, to} | rest],
           prev_bucket,
           interval,
           inner_acc,
@@ -345,9 +459,11 @@ defmodule W2.Durations do
         bucket = bucket(from, interval)
 
         outer_acc =
-          if inner_acc,
-            do: [[prev_bucket * interval, inner_acc] | outer_acc],
-            else: outer_acc
+          if inner_acc do
+            [{prev_bucket * interval, inner_acc} | outer_acc]
+          else
+            outer_acc
+          end
 
         inner_acc = %{project => to - from}
         bucket_totals2(rest, bucket, interval, inner_acc, outer_acc)
@@ -357,17 +473,19 @@ defmodule W2.Durations do
         clamped_to = (bucket + 1) * interval
 
         outer_acc =
-          if inner_acc,
-            do: [[prev_bucket * interval, inner_acc] | outer_acc],
-            else: outer_acc
+          if inner_acc do
+            [[prev_bucket * interval, inner_acc] | outer_acc]
+          else
+            outer_acc
+          end
 
         inner_acc = %{project => clamped_to - from}
-        bucket_totals2([[project, clamped_to, to] | rest], bucket, interval, inner_acc, outer_acc)
+        bucket_totals2([{project, clamped_to, to} | rest], bucket, interval, inner_acc, outer_acc)
     end
   end
 
   def bucket_totals2([], prev_bucket, interval, inner_acc, outer_acc) do
-    [[prev_bucket * interval, inner_acc] | outer_acc]
+    [{prev_bucket * interval, inner_acc} | outer_acc]
   end
 
   defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)

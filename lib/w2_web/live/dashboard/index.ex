@@ -8,7 +8,7 @@ defmodule W2Web.DashboardLive.Index do
   # custom scroll indicator
   # fix unknowns
   # proper buckets
-  # scroll to hovered branch / file / project
+  # scroll to hovered branch / entity / project
 
   @days 7
 
@@ -18,7 +18,7 @@ defmodule W2Web.DashboardLive.Index do
       Phoenix.PubSub.subscribe(W2.PubSub, "heartbeats")
     end
 
-    {:ok, socket, temporary_assigns: [files: [], branches: [], projects: [], timeline: []]}
+    {:ok, socket, temporary_assigns: [entities: [], branches: [], projects: [], timeline: []]}
   end
 
   @impl true
@@ -28,49 +28,66 @@ defmodule W2Web.DashboardLive.Index do
     %{
       project: selected_project,
       branch: selected_branch,
-      file: selected_file,
+      entity: selected_entity,
       projects: projects,
       branches: branches,
-      files: files
+      entities: entities
     } = assigns
 
     base_qs = qs(assigns, [])
-    branch_qs = Keyword.delete(base_qs, :file)
+    branch_qs = Keyword.delete(base_qs, :entity)
     project_qs = Keyword.delete(branch_qs, :branch)
 
     # TODO
     project_rows =
-      Enum.map(projects, fn [project, _time] = row ->
-        dimmed = if selected_project, do: selected_project != project
+      Enum.map(projects, fn %{project: project} = row ->
+        dimmed =
+          if selected_project do
+            selected_project != project
+          end
 
         qs =
-          if selected_project == project,
-            do: Keyword.delete(project_qs, :project),
-            else: Keyword.put(project_qs, :project, project)
+          if selected_project == project do
+            Keyword.delete(project_qs, :project)
+          else
+            Keyword.put(project_qs, :project, project)
+          end
 
         %{value: row, dimmed: dimmed, qs: qs}
       end)
 
     branch_rows =
-      Enum.map(branches, fn [project, branch, _time] = row ->
-        dimmed = if selected_branch, do: selected_branch != branch
+      Enum.map(branches, fn %{project: project, branch: branch} = row ->
+        dimmed =
+          if selected_branch do
+            selected_branch != branch
+          end
 
         qs =
-          if selected_branch == branch,
-            do: Keyword.delete(branch_qs, :branch),
-            else: branch_qs |> Keyword.put(:project, project) |> Keyword.put(:branch, branch)
+          if selected_branch == branch do
+            Keyword.delete(branch_qs, :branch)
+          else
+            branch_qs |> Keyword.put(:project, project) |> Keyword.put(:branch, branch)
+          end
 
         %{value: row, dimmed: dimmed, qs: qs}
       end)
 
-    file_rows =
-      Enum.map(files, fn [project, file, _time] = row ->
-        dimmed = if selected_file, do: selected_file != file
+    entity_rows =
+      Enum.map(entities, fn %{project: project, entity: entity} = row ->
+        dimmed =
+          if selected_entity do
+            selected_entity != entity
+          end
 
         qs =
-          if selected_file == file,
-            do: Keyword.delete(base_qs, :file),
-            else: base_qs |> Keyword.put(:project, project) |> Keyword.put(:file, file)
+          if selected_entity == entity do
+            Keyword.delete(base_qs, :entity)
+          else
+            base_qs
+            |> Keyword.put(:project, project)
+            |> Keyword.put(:entity, entity)
+          end
 
         %{value: row, dimmed: dimmed, qs: qs}
       end)
@@ -79,7 +96,7 @@ defmodule W2Web.DashboardLive.Index do
       assign(assigns,
         project_rows: project_rows,
         branch_rows: branch_rows,
-        file_rows: file_rows,
+        entity_rows: entity_rows,
         from: DateTime.to_date(from),
         to: DateTime.to_date(to)
       )
@@ -113,7 +130,13 @@ defmodule W2Web.DashboardLive.Index do
             <span class="text-white">Σ<%= format_time(@total) %></span>
           </div>
           <.time_table
-            :let={%{value: [project, time], dimmed: dimmed, qs: qs}}
+            :let={
+              %{
+                value: %{project: project, category: category, duration: time},
+                dimmed: dimmed,
+                qs: qs
+              }
+            }
             rows={@project_rows}
             title="PROJECT"
             extra_header_class="bg-black text-white"
@@ -124,13 +147,19 @@ defmodule W2Web.DashboardLive.Index do
               dimmed={dimmed}
               qs={qs}
             >
-              <%= project %>
+              <%= if prefix = project_prefix(category) do %>
+                <.prefix_span prefix={prefix} value={project} />
+              <% else %>
+                <%= project %>
+              <% end %>
             </.time_table_row>
           </.time_table>
         </div>
         <div class="w-1/3 flex flex-col">
           <.time_table
-            :let={%{value: [project, branch, time], dimmed: dimmed, qs: qs}}
+            :let={
+              %{value: %{project: project, branch: branch, duration: time}, dimmed: dimmed, qs: qs}
+            }
             rows={@branch_rows}
             title="BRANCH"
             extra_header_class="bg-red-400"
@@ -142,13 +171,15 @@ defmodule W2Web.DashboardLive.Index do
         </div>
         <div class="w-1/3 flex flex-col bg-blue-50">
           <.time_table
-            :let={%{value: [project, file, time], dimmed: dimmed, qs: qs}}
-            rows={@file_rows}
+            :let={
+              %{value: %{project: project, entity: entity, duration: time}, dimmed: dimmed, qs: qs}
+            }
+            rows={@entity_rows}
             title="FILE"
             extra_header_class="bg-blue-400"
           >
             <.time_table_row class="odd:bg-blue-100" time={time} dimmed={dimmed} qs={qs}>
-              <.prefix_span prefix={project} value={format_file(file)} />
+              <.prefix_span prefix={project} value={format_entity(entity)} />
             </.time_table_row>
           </.time_table>
         </div>
@@ -246,19 +277,22 @@ defmodule W2Web.DashboardLive.Index do
     """
   end
 
-  defp format_file("https://github.com/" <> path) do
+  defp project_prefix("browsing"), do: "gh"
+  defp project_prefix(_other), do: nil
+
+  defp format_entity("https://github.com/" <> path) do
     case String.split(path, "/") do
       [_org, _repo, type, id] -> Path.join(type, id)
-      _ -> format_file(path)
+      _ -> format_entity(path)
     end
   end
 
-  defp format_file("https://" <> _rest = url) do
+  defp format_entity("https://" <> _rest = url) do
     %URI{host: host, path: path} = URI.parse(url)
-    format_file((host || "") <> (path || ""))
+    format_entity((host || "") <> (path || ""))
   end
 
-  defp format_file(file) do
+  defp format_entity(file) do
     case String.split(file, "/", trim: true) do
       [] -> file
       [file] -> file
@@ -273,7 +307,11 @@ defmodule W2Web.DashboardLive.Index do
       socket
       |> assign(project: params["project"])
       |> assign(branch: params["branch"])
-      |> assign(file: params["file"])
+      |> assign(entity: params["entity"])
+      |> assign(category: params["category"])
+      |> assign(type: params["type"])
+      |> assign(editor: params["editor"])
+      |> assign(interval: params["interval"])
       |> assign(from: maybe_date(params["from"]))
       |> assign(to: maybe_date(params["to"]))
       |> fetch_data()
@@ -298,48 +336,73 @@ defmodule W2Web.DashboardLive.Index do
     {from, to} = local_date_range(assigns)
     project = assigns[:project]
     branch = assigns[:branch]
-    file = assigns[:file]
+    entity = assigns[:entity]
+    category = assigns[:category]
+    type = assigns[:type]
+    editor = assigns[:editor]
+    interval = assigns[:interval]
 
     timeline =
-      Durations.fetch_timeline(project: project, branch: branch, file: file, from: from, to: to)
+      Durations.fetch_timeline(
+        project: project,
+        category: category,
+        type: type,
+        editor: editor,
+        branch: branch,
+        entity: entity,
+        from: from,
+        to: to,
+        interval: interval
+      )
 
-    projects = Durations.fetch_projects(from: from, to: to)
-    branches = Durations.fetch_branches(project: project, from: from, to: to)
-    total = Enum.reduce(projects, 0, fn [_project, total], acc -> acc + total end)
+    projects =
+      Durations.fetch_projects(
+        from: from,
+        to: to,
+        category: category,
+        type: type,
+        editor: editor,
+        interval: interval
+      )
 
-    files =
-      Durations.fetch_files(project: project, branch: branch, from: from, to: to)
+    total = Enum.reduce(projects, 0, fn %{duration: duration}, total -> total + duration end)
+
+    branches =
+      Durations.fetch_branches(
+        project: project,
+        from: from,
+        to: to,
+        interval: interval
+      )
+
+    entities =
+      Durations.fetch_entities(
+        project: project,
+        category: category,
+        type: type,
+        editor: editor,
+        branch: branch,
+        from: from,
+        to: to,
+        interval: interval
+      )
       |> Enum.map(fn
-        [project, file, time] = og ->
+        %{project: project, entity: entity} = og ->
           # TODO
-          if file = file |> String.split("/") |> remove_file_project_prefix(project) do
-            [project, Enum.join(file, "/"), time]
+          if entity = entity |> String.split("/") |> remove_file_project_prefix(project) do
+            Map.replace!(og, :entity, Enum.join(entity, "/"))
           else
             og
           end
       end)
 
-    page_title =
-      cond do
-        project && branch ->
-          [_project, _branch, time] =
-            Enum.find(branches, fn [_project, b, _time] -> b == branch end)
-
-          format_time(time) <> " " <> project <> "/" <> branch
-
-        project ->
-          [_project, time] = Enum.find(projects, fn [p, _time] -> p == project end)
-          format_time(time) <> " " <> project
-
-        true ->
-          format_time(total)
-      end
+    page_title = format_time(total)
 
     socket
     |> assign(total: total)
     |> assign(projects: projects)
     |> assign(branches: branches)
-    |> assign(files: files)
+    |> assign(entities: entities)
     |> assign(timeline: timeline)
     |> assign(page_title: page_title)
   end
@@ -364,8 +427,9 @@ defmodule W2Web.DashboardLive.Index do
 
   defp remove_file_project_prefix([project | rest], project), do: rest
 
-  defp remove_file_project_prefix([_ | rest], project),
-    do: remove_file_project_prefix(rest, project)
+  defp remove_file_project_prefix([_ | rest], project) do
+    remove_file_project_prefix(rest, project)
+  end
 
   defp remove_file_project_prefix([], _project), do: nil
 
@@ -408,12 +472,18 @@ defmodule W2Web.DashboardLive.Index do
     |> maybe_put_qs(assigns, overrides, :from, &Date.to_iso8601/1)
     |> maybe_put_qs(assigns, overrides, :project)
     |> maybe_put_qs(assigns, overrides, :branch)
-    |> maybe_put_qs(assigns, overrides, :file)
+    |> maybe_put_qs(assigns, overrides, :entity)
+    |> maybe_put_qs(assigns, overrides, :category)
+    |> maybe_put_qs(assigns, overrides, :interval)
+    |> maybe_put_qs(assigns, overrides, :type)
+    |> maybe_put_qs(assigns, overrides, :editor)
   end
 
   defp maybe_put_qs(qs, assigns, overrides, field, transform \\ &Function.identity/1) do
-    if value = overrides[field] || assigns[field],
-      do: Keyword.put(qs, field, transform.(value)),
-      else: qs
+    if value = overrides[field] || assigns[field] do
+      Keyword.put(qs, field, transform.(value))
+    else
+      qs
+    end
   end
 end
