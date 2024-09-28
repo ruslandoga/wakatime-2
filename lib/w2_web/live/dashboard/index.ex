@@ -303,6 +303,9 @@ defmodule W2Web.DashboardLive.Index do
 
   @impl true
   def handle_params(params, _uri, socket) do
+    from = maybe_date(params["from"])
+    to = maybe_date(params["to"])
+
     socket =
       socket
       |> assign(project: params["project"])
@@ -312,9 +315,16 @@ defmodule W2Web.DashboardLive.Index do
       |> assign(type: params["type"])
       |> assign(editor: params["editor"])
       |> assign(interval: params["interval"])
-      |> assign(from: maybe_date(params["from"]))
-      |> assign(to: maybe_date(params["to"]))
-      |> fetch_data()
+      |> assign(from: from)
+      |> assign(to: to)
+
+    socket =
+      if from && to && Date.after?(from, to) do
+        qs = qs(socket.assigns, to: from)
+        push_patch(socket, to: ~p"/?#{qs}", replace: true)
+      else
+        fetch_data(socket)
+      end
 
     {:noreply, socket}
   end
