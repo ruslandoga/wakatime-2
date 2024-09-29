@@ -25,7 +25,8 @@ defmodule W2Web.SVGHTML do
   def prepare_chart_for_svg(from, interval, buckets) do
     from = div(from, interval)
 
-    Enum.flat_map(buckets, fn [time, totals] ->
+    Enum.flat_map(buckets, fn bucket ->
+      {time, totals} = bucket
       x = div(time, interval) - from
 
       {_, bars} =
@@ -41,7 +42,7 @@ defmodule W2Web.SVGHTML do
   def prepare_chart_for_svg(from, interval, _width, height, buckets) do
     from = div(from, interval)
 
-    Enum.flat_map(buckets, fn [time, totals] ->
+    Enum.flat_map(buckets, fn {time, totals} ->
       x = div(time, interval) - from
 
       {_, bars} =

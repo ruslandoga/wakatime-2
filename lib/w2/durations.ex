@@ -474,7 +474,7 @@ defmodule W2.Durations do
 
         outer_acc =
           if inner_acc do
-            [[prev_bucket * interval, inner_acc] | outer_acc]
+            [{prev_bucket * interval, inner_acc} | outer_acc]
           else
             outer_acc
           end
