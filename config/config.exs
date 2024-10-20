@@ -76,7 +76,10 @@ config :w2,
     {~D[2024-07-28], "Asia/Ho_Chi_Minh"},
     {~D[2024-08-06], "Asia/Seoul"},
     # Chiang Mai
-    {~D[2024-08-13], "Asia/Bangkok"}
+    {~D[2024-08-13], "Asia/Bangkok"},
+    # Hanoi
+    {~D[2024-10-11], "Asia/Ho_Chi_Minh"},
+    {~D[2022-10-19], "Asia/Hong_Kong"}
   ]
 
 # Import environment specific config. This must remain at the bottom
