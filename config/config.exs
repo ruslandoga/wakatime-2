@@ -61,13 +61,14 @@ config :w2,
     {~D[2023-09-28], "Asia/Kuala_Lumpur"},
     # Busan
     {~D[2023-10-27], "Asia/Seoul"},
-    # Taipei -> Toucheng -> Luodong -> Hualein -> Taipei
+    # Taipei -> Toucheng -> Luodong -> Hualien -> Taipei
     {~D[2023-11-30], "Asia/Taipei"},
     # Penang
     {~D[2023-12-18], "Asia/Kuala_Lumpur"},
     # Tokyo -> Nagoya -> Kyoto -> Osaka -> Tokyo -> Osaka -> Kyoto -> Fukuoka
     {~D[2023-12-31], "Asia/Tokyo"},
     {~D[2024-01-30], "Asia/Seoul"},
+    # Moscow -> Kazan -> Moscow
     {~D[2024-02-03], "Europe/Moscow"},
     {~D[2024-02-13], "Asia/Kuala_Lumpur"},
     # Chiang Mai -> Mae Hong Son -> Chiang Mai
