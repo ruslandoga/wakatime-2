@@ -70,6 +70,7 @@ config :w2,
     {~D[2024-01-30], "Asia/Seoul"},
     # Moscow -> Kazan -> Moscow
     {~D[2024-02-03], "Europe/Moscow"},
+    # Kuala Lumpur -> Kota Kinabalu
     {~D[2024-02-13], "Asia/Kuala_Lumpur"},
     # Chiang Mai -> Mae Hong Son -> Chiang Mai
     {~D[2024-04-30], "Asia/Bangkok"},
