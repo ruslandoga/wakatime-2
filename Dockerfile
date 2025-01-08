@@ -47,7 +47,7 @@ RUN mix release
 # APP #
 #######
 
-FROM alpine:3.21.0 AS app
+FROM alpine:3.21.1 AS app
 
 RUN adduser -S -H -u 999 -G nogroup wakatime
 
