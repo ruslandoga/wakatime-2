@@ -23,7 +23,7 @@ $ docker run -d \
   -e "S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" \
   -e "SENTRY_DSN=https://e23dd06d7bff44f18d86f3387867891@019635.ingest.sentry.io/6173453" \
   -e "SECRET_KEY_BASE=$secret_key_base" \
-  -e "PHX_HOST=stats.copycat.fun" \
+  -e "PHX_HOST=stats.edify.space" \
   -e "PHX_SERVER=true" \
   -e "PORT=9000" \
   -p 9000:9000 \
