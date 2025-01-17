@@ -127,7 +127,7 @@ defmodule W2Web.DashboardLive.Index do
                 phx-debounce="300"
               />
             </form>
-            <span class="text-white">Σ<%= format_time(@total) %></span>
+            <span class="text-white">Σ{format_time(@total)}</span>
           </div>
           <.time_table
             :let={
@@ -150,7 +150,7 @@ defmodule W2Web.DashboardLive.Index do
               <%= if prefix = project_prefix(category) do %>
                 <.prefix_span prefix={prefix} value={project} />
               <% else %>
-                <%= project %>
+                {project}
               <% end %>
             </.time_table_row>
           </.time_table>
@@ -237,12 +237,12 @@ defmodule W2Web.DashboardLive.Index do
   defp time_table(assigns) do
     ~H"""
     <div class={"flex justify-between px-4 " <> @extra_header_class}>
-      <span><%= @title %></span>
+      <span>{@title}</span>
       <span>TIME</span>
     </div>
     <ul class="overflow-auto">
       <%= for row <- @rows do %>
-        <%= render_slot(@inner_block, row) %>
+        {render_slot(@inner_block, row)}
       <% end %>
     </ul>
     """
@@ -251,7 +251,7 @@ defmodule W2Web.DashboardLive.Index do
   defp _link(assigns) do
     ~H"""
     <.link patch={@href} class="px-4 flex justify-between leading-6 transition">
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </.link>
     """
   end
@@ -265,7 +265,7 @@ defmodule W2Web.DashboardLive.Index do
     ~H"""
     <li class={@class} style={@style}>
       <._link href={@path}>
-        <span class="truncate"><%= render_slot(@inner_block) %></span><span><%= format_time(@time) %></span>
+        <span class="truncate">{render_slot(@inner_block)}</span><span>{format_time(@time)}</span>
       </._link>
     </li>
     """
@@ -273,7 +273,7 @@ defmodule W2Web.DashboardLive.Index do
 
   defp prefix_span(assigns) do
     ~H"""
-    <span class="opacity-50"><%= @prefix %>/</span><span><%= @value %></span>
+    <span class="opacity-50">{@prefix}/</span><span>{@value}</span>
     """
   end
 
