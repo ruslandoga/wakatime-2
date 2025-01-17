@@ -91,7 +91,6 @@ jobs:
           images: ${{ env.GHCR_REPO }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=sha
 
       - name: Create manifest list and push
