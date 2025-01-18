@@ -5,9 +5,6 @@ Successor to [ruslandoga/wakatime-1,](https://github.com/ruslandoga/wakatime-1) 
 #### How-to:
 
 ```shell
-$ git clone https://github.com/ruslandoga/wakatime-2
-$ docker build ./wakatime-2 -t wakatime
-
 $ api_key=$(uuidgen | tr '[:upper:]' '[:lower:]')
 # 7d35a1b6-df99-4961-8590-2c4bd40f1a77
 
@@ -28,5 +25,5 @@ $ docker run -d \
   -e "PORT=9000" \
   -p 9000:9000 \
   -v w2_data:/data \
-  wakatime
+  ghcr.io/ruslandoga/wakatime-2:master
 ```
