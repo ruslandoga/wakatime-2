@@ -8,7 +8,7 @@ FROM litestream/litestream:0.3.13 AS litestream
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.18.2-erlang-27.2-alpine-3.21.2 AS build
+FROM hexpm/elixir:1.18.3-erlang-27.3-alpine-3.21.3 AS build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm brotli
