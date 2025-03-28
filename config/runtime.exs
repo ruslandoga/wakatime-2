@@ -20,8 +20,15 @@ if System.get_env("PHX_SERVER") do
   config :w2, W2Web.Endpoint, server: true
 end
 
+config :w2,
+  duck: %{
+    # TODO
+    "max_memory" => "1GB"
+  }
+
 # same as timeout in https://wakatime.com/developers#durations
-config :w2, interval: String.to_integer(System.get_env("DURATION_INTERVAL") || "300")
+config :w2,
+  interval: Duration.new!(second: String.to_integer(System.get_env("DURATION_INTERVAL") || "300"))
 
 if config_env() == :prod do
   config :w2, api_key: System.fetch_env!("API_KEY")
