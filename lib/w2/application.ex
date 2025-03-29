@@ -4,11 +4,16 @@ defmodule W2.Application do
 
   @impl true
   def start(_type, _args) do
-    repo_config = Application.fetch_env!(:w2, W2.Repo)
+    _repo_config = Application.fetch_env!(:w2, W2.Repo)
+    duck_config = Application.fetch_env!(:w2, :duck)
 
     children = [
       W2.Repo,
-      {W2.Release.Migrator, migrate: repo_config[:migrate]},
+      %{
+        id: :duck,
+        start: {__MODULE__, :init_duck, [duck_config]},
+        type: :worker
+      },
       W2Web.Telemetry,
       {Phoenix.PubSub, name: W2.PubSub},
       W2Web.Endpoint
@@ -24,5 +29,11 @@ defmodule W2.Application do
   def config_change(changed, _new, removed) do
     W2Web.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  @doc false
+  def init_duck(config) do
+    :persistent_term.put(:duck, DuxDB.connect(DuxDB.open(":memory:", config)))
+    :ignore
   end
 end

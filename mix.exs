@@ -51,7 +51,8 @@ defmodule W2.MixProject do
       {:sentry, "~> 10.8.0"},
       {:finch, "~> 0.19.0"},
       {:phoenix_bakery, "~> 0.1.0", runtime: false},
-      {:tz, "~> 0.28.1"}
+      {:tz, "~> 0.28.1"},
+      {:duxdb, github: "ruslandoga/duxdb"}
     ]
   end
 

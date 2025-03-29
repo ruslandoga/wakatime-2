@@ -40,7 +40,7 @@ defmodule W2Web.DashboardLive.Index do
 
     # TODO
     project_rows =
-      Enum.map(projects, fn %{project: project} = row ->
+      Enum.map(projects, fn %{"project" => project} = row ->
         dimmed =
           if selected_project do
             selected_project != project
@@ -57,7 +57,7 @@ defmodule W2Web.DashboardLive.Index do
       end)
 
     branch_rows =
-      Enum.map(branches, fn %{project: project, branch: branch} = row ->
+      Enum.map(branches, fn %{"project" => project, "branch" => branch} = row ->
         dimmed =
           if selected_branch do
             selected_branch != branch
@@ -74,7 +74,7 @@ defmodule W2Web.DashboardLive.Index do
       end)
 
     entity_rows =
-      Enum.map(entities, fn %{project: project, entity: entity} = row ->
+      Enum.map(entities, fn %{"project" => project, "entity" => entity} = row ->
         dimmed =
           if selected_entity do
             selected_entity != entity
@@ -132,7 +132,7 @@ defmodule W2Web.DashboardLive.Index do
           <.time_table
             :let={
               %{
-                value: %{project: project, category: category, duration: time},
+                value: %{"project" => project, "category" => category, "duration" => time},
                 dimmed: dimmed,
                 qs: qs
               }
@@ -158,7 +158,11 @@ defmodule W2Web.DashboardLive.Index do
         <div class="w-1/3 flex flex-col">
           <.time_table
             :let={
-              %{value: %{project: project, branch: branch, duration: time}, dimmed: dimmed, qs: qs}
+              %{
+                value: %{"project" => project, "branch" => branch, "duration" => time},
+                dimmed: dimmed,
+                qs: qs
+              }
             }
             rows={@branch_rows}
             title="BRANCH"
@@ -172,7 +176,11 @@ defmodule W2Web.DashboardLive.Index do
         <div class="w-1/3 flex flex-col bg-blue-50">
           <.time_table
             :let={
-              %{value: %{project: project, entity: entity, duration: time}, dimmed: dimmed, qs: qs}
+              %{
+                value: %{"project" => project, "entity" => entity, "duration" => time},
+                dimmed: dimmed,
+                qs: qs
+              }
             }
             rows={@entity_rows}
             title="FILE"
@@ -314,7 +322,8 @@ defmodule W2Web.DashboardLive.Index do
       |> assign(category: params["category"])
       |> assign(type: params["type"])
       |> assign(editor: params["editor"])
-      |> assign(interval: params["interval"])
+      # TODO
+      # |> assign(interval: params["interval"])
       |> assign(from: from)
       |> assign(to: to)
 
@@ -375,7 +384,7 @@ defmodule W2Web.DashboardLive.Index do
         interval: interval
       )
 
-    total = Enum.reduce(projects, 0, fn %{duration: duration}, total -> total + duration end)
+    total = Enum.reduce(projects, 0, fn %{"duration" => duration}, total -> total + duration end)
 
     branches =
       Durations.fetch_branches(
@@ -397,10 +406,10 @@ defmodule W2Web.DashboardLive.Index do
         interval: interval
       )
       |> Enum.map(fn
-        %{project: project, entity: entity} = og ->
+        %{"project" => project, "entity" => entity} = og ->
           # TODO
           if entity = entity |> String.split("/") |> remove_file_project_prefix(project) do
-            Map.replace!(og, :entity, Enum.join(entity, "/"))
+            Map.replace!(og, "entity", Enum.join(entity, "/"))
           else
             og
           end

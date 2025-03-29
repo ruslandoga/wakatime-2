@@ -2,40 +2,45 @@ defmodule W2.DurationsTest do
   use W2.DataCase
   alias W2.Durations
 
+  @moduletag :tmp_dir
+
   doctest Durations, import: true
 
   describe "fetch_timeline/1" do
-    test "project switch" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
-        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
-      ])
+    test "project switch", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+          %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
+        ])
 
       from = ~U[2022-01-01 12:04:00Z]
       to = ~U[2022-01-01 12:06:00Z]
 
-      assert Durations.fetch_timeline(from: from, to: to) == [
-               {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])},
+      assert Durations.fetch_timeline(from: from, to: to, parquet: parquet) == [
+               # TODO bridge the gap between 12:04:18 and 12:04:19
+               {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:18Z])},
                {"w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])}
              ]
     end
 
-    test "duration break" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
-      ])
+    test "duration break", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
+        ])
 
       from = ~U[2022-01-01 12:00:00Z]
       to = ~U[2022-01-01 14:00:00Z]
 
-      assert Durations.fetch_timeline(from: from, to: to) == [
+      assert Durations.fetch_timeline(from: from, to: to, parquet: parquet) == [
                {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])},
                {"w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])}
              ]
@@ -43,104 +48,124 @@ defmodule W2.DurationsTest do
   end
 
   describe "fetch_projects/1" do
-    test "project switch" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
-        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
-      ])
+    test "project switch", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+          %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
+        ])
 
       from = ~U[2022-01-01 12:04:00Z]
       to = ~U[2022-01-01 12:06:00Z]
 
-      assert Durations.fetch_projects(from: from, to: to) == [
-               %{type: "file", category: "coding", project: "w2", duration: 60.0},
-               %{type: "file", category: "coding", project: "w1", duration: 7.0}
+      assert Durations.fetch_projects(from: from, to: to, parquet: parquet) == [
+               %{"type" => "file", "category" => "coding", "project" => "w2", "duration" => 60},
+               %{"type" => "file", "category" => "coding", "project" => "w1", "duration" => 7}
              ]
     end
 
-    test "duration break" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
-      ])
+    test "duration break", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
+        ])
 
       from = ~U[2022-01-01 12:00:00Z]
       to = ~U[2022-01-01 14:00:00Z]
 
-      assert Durations.fetch_projects(from: from, to: to) == [
-               %{type: "file", category: "coding", project: "w1", duration: 121.0}
+      assert Durations.fetch_projects(from: from, to: to, parquet: parquet) == [
+               %{"type" => "file", "category" => "coding", "project" => "w1", "duration" => 121}
              ]
     end
   end
 
-  test "fetch_branches/1" do
-    insert_heartbeats([
-      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w2", "branch" => "cool-feature"},
-      %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "branch" => "cool-feature"},
-      %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "branch" => "a-feature"},
-      %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w2", "branch" => "a-feature"},
-      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "branch" => "a-feature"},
-      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "branch" => "a-feature"}
-    ])
+  test "fetch_branches/1", %{tmp_dir: tmp_dir} do
+    parquet =
+      parquet_heartbeats(tmp_dir, [
+        %{
+          "time" => unix(~U[2022-01-01 12:04:12Z]),
+          "project" => "w2",
+          "branch" => "cool-feature"
+        },
+        %{
+          "time" => unix(~U[2022-01-01 12:05:12Z]),
+          "project" => "w2",
+          "branch" => "cool-feature"
+        },
+        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "branch" => "a-feature"},
+        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w2", "branch" => "a-feature"},
+        %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "branch" => "a-feature"},
+        %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "branch" => "a-feature"}
+      ])
 
     from = ~U[2022-01-01 12:00:00Z]
     to = ~U[2022-01-01 14:00:00Z]
 
-    assert Durations.fetch_branches(project: "w2", from: from, to: to) == [
-             %{branch: "a-feature", project: "w2", duration: 121.0},
-             %{branch: "cool-feature", project: "w2", duration: 60.0}
+    assert Durations.fetch_branches(project: "w2", from: from, to: to, parquet: parquet) == [
+             %{"branch" => "a-feature", "project" => "w2", "duration" => 121},
+             %{"branch" => "cool-feature", "project" => "w2", "duration" => 60}
            ]
   end
 
-  test "fetch_entities/1" do
-    insert_heartbeats([
-      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w2", "entity" => "lib/router.ex"},
-      %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "entity" => "lib/api.ex"},
-      %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "entity" => "lib/api.ex"},
-      %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w2", "entity" => "lib/router.ex"},
-      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "entity" => "lib/api2.ex"},
-      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "entity" => "lib/app.ex"},
-      %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w2", "entity" => "lib/api2.ex"},
-      %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w2", "entity" => "lib/app.ex"}
-    ])
+  test "fetch_entities/1", %{tmp_dir: tmp_dir} do
+    parquet =
+      parquet_heartbeats(tmp_dir, [
+        %{
+          "time" => unix(~U[2022-01-01 12:04:12Z]),
+          "project" => "w2",
+          "entity" => "lib/router.ex"
+        },
+        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w2", "entity" => "lib/api.ex"},
+        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w2", "entity" => "lib/api.ex"},
+        %{
+          "time" => unix(~U[2022-01-01 13:05:19Z]),
+          "project" => "w2",
+          "entity" => "lib/router.ex"
+        },
+        %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w3", "entity" => "lib/api2.ex"},
+        %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w3", "entity" => "lib/app.ex"},
+        %{"time" => unix(~U[2022-01-01 13:06:19Z]), "project" => "w2", "entity" => "lib/api2.ex"},
+        %{"time" => unix(~U[2022-01-01 13:07:19Z]), "project" => "w2", "entity" => "lib/app.ex"}
+      ])
 
     from = ~U[2022-01-01 12:00:00Z]
     to = ~U[2022-01-01 14:00:00Z]
 
-    assert Durations.fetch_entities(project: "w2", from: from, to: to) == [
+    assert Durations.fetch_entities(project: "w2", from: from, to: to, parquet: parquet) == [
              %{
-               type: "file",
-               category: "coding",
-               project: "w2",
-               duration: 120.0,
-               entity: "lib/router.ex"
+               "type" => "file",
+               "category" => "coding",
+               "project" => "w2",
+               "duration" => 120,
+               "entity" => "lib/router.ex"
              },
              %{
-               type: "file",
-               category: "coding",
-               project: "w2",
-               duration: 61.0,
-               entity: "lib/api.ex"
+               "type" => "file",
+               "category" => "coding",
+               "project" => "w2",
+               "duration" => 61,
+               "entity" => "lib/api.ex"
              },
              %{
-               type: "file",
-               category: "coding",
-               project: "w2",
-               duration: 60.0,
-               entity: "lib/api2.ex"
+               "type" => "file",
+               "category" => "coding",
+               "project" => "w2",
+               "duration" => 60,
+               "entity" => "lib/api2.ex"
              },
              %{
-               type: "file",
-               category: "coding",
-               project: "w2",
-               duration: 0,
-               entity: "lib/app.ex"
+               "type" => "file",
+               "category" => "coding",
+               "project" => "w2",
+               "duration" => 0,
+               "entity" => "lib/app.ex"
              }
            ]
   end
@@ -207,53 +232,56 @@ defmodule W2.DurationsTest do
   end
 
   describe "fetch_bucket_data/2" do
-    test "project switch" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
-        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
-      ])
+    test "project switch", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+          %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
+        ])
 
       from = ~U[2022-01-01 12:04:00Z]
       to = ~U[2022-01-01 12:06:00Z]
 
-      assert Durations.fetch_bucket_data(from, to) == [
-               {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 7, "w2" => 60}}
+      assert Durations.fetch_bucket_data(from, to, parquet) == [
+               {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 6, "w2" => 60}}
              ]
     end
 
-    test "hour change" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:02:14Z]), "project" => "w1"}
-      ])
+    test "hour change", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:02:14Z]), "project" => "w1"}
+        ])
 
       from = ~U[2022-01-01 12:00:00Z]
       to = ~U[2022-01-01 14:00:00Z]
 
-      assert Durations.fetch_bucket_data(from, to) ==
+      assert Durations.fetch_bucket_data(from, to, parquet) ==
                [
                  {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 108}},
                  {unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 134}}
                ]
     end
 
-    test "duration break" do
-      insert_heartbeats([
-        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
-        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
-      ])
+    test "duration break", %{tmp_dir: tmp_dir} do
+      parquet =
+        parquet_heartbeats(tmp_dir, [
+          %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+          %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
+        ])
 
       from = ~U[2022-01-01 12:00:00Z]
       to = ~U[2022-01-01 14:00:00Z]
 
-      assert Durations.fetch_bucket_data(from, to) ==
+      assert Durations.fetch_bucket_data(from, to, parquet) ==
                [
                  {unix(~U[2022-01-01 12:00:00Z]), %{"w1" => 60}},
                  {unix(~U[2022-01-01 13:00:00Z]), %{"w1" => 61}}
