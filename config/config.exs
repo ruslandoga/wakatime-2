@@ -85,8 +85,7 @@ config :w2,
     # Chiang Mai
     {~D[2024-10-27], "Asia/Bangkok"},
     {~D[2024-12-26], "Europe/Moscow"},
-    # Hanoi
-    {~D[2025-08-04], "Asia/Ho_Chi_Minh"}
+    {~D[2025-08-13], "Asia/Tokyo"}
   ]
 
 # Import environment specific config. This must remain at the bottom
