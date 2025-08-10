@@ -88,6 +88,29 @@ defmodule W2.DataCase do
     W2.Ingester.insert_heartbeats(heartbeats, _machine_name = "mac3.local")
   end
 
+  def parquet_heartbeats(tmp_dir, overrides) do
+    heartbeats = Enum.map(overrides, fn overrides -> heartbeat(overrides) end)
+    expected_count = length(heartbeats)
+    parquet_path = Path.join(tmp_dir, "heartbeats.parquet")
+    ndjson_path = Path.join(tmp_dir, "heartbeats.ndjson")
+    ndjson = Enum.map_intersperse(heartbeats, "\n", &Jason.encode_to_iodata!/1)
+    File.write!(ndjson_path, ndjson)
+
+    [%{"Count" => ^expected_count}] =
+      W2.duck_q(
+        """
+        copy (
+          select * replace (to_timestamp(time)::timestamptz at time zone 'UTC' as time) from read_json($ndjson)
+        ) to '#{parquet_path}' (
+          format parquet, compression zstd, row_group_size 10000, parquet_version v2
+        )
+        """,
+        %{"ndjson" => ndjson_path}
+      )
+
+    parquet_path
+  end
+
   alias W2.Repo
   import Ecto.Query
 

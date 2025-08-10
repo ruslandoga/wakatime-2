@@ -4,6 +4,19 @@
 
 FROM litestream/litestream:0.3.13 AS litestream
 
+##########
+# DUCKDB #
+##########
+
+FROM alpine:3.21.2 AS duckdb
+
+ENV DUCKDB_VERSION=v1.2.1
+# TODO arm64
+ENV DUCKDB_ARCH=amd64 
+
+RUN curl -L https://github.com/duckdb/duckdb/releases/download/${DUCKDB_VERSION}/libduckdb-linux-${DUCKDB_ARCH}.zip -o libduckdb.zip
+RUN unzip libduckdb.zip -d libduckdb
+
 #########
 # BUILD #
 #########
@@ -54,7 +67,7 @@ RUN adduser -S -H -u 999 -G nogroup wakatime
 RUN apk add --no-cache --update openssl libgcc libstdc++ ncurses
 
 COPY --from=build /app/_build/prod/rel/w2 /app
-COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=duckdb /usr/local/bin/litestream /usr/local/bin/litestream
 COPY litestream.yml /etc/litestream.yml
 
 RUN mkdir -p /data && chmod ugo+rw -R /data

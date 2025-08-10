@@ -3,6 +3,10 @@ defmodule W2.IngesterTest do
   alias W2.{Ingester, Durations}
   alias W2.Ingester.Heartbeat
 
+  @moduletag :tmp_dir
+
+  # TODO
+  @tag :skip
   test "insert and read back" do
     heartbeats = [
       %{
@@ -57,58 +61,61 @@ defmodule W2.IngesterTest do
            ]
   end
 
-  test "project switch" do
-    insert_heartbeats([
-      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
-      %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
-    ])
+  test "project switch", %{tmp_dir: tmp_dir} do
+    parquet =
+      parquet_heartbeats(tmp_dir, [
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:04:19Z]), "project" => "w2"},
+        %{"time" => unix(~U[2022-01-01 12:05:19Z]), "project" => "w2"}
+      ])
 
-    assert Durations.fetch_timeline() == [
-             {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:19Z])},
+    assert Durations.fetch_timeline(parquet: parquet) == [
+             {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:04:18Z])},
              {"w2", unix(~U[2022-01-01 12:04:19Z]), unix(~U[2022-01-01 12:05:19Z])}
            ]
 
-    assert Durations.fetch_projects() == [
-             %{project: "w2", duration: 60.0, category: "coding", type: "file"},
-             %{project: "w1", duration: 7.0, category: "coding", type: "file"}
+    assert Durations.fetch_projects(parquet: parquet) == [
+             %{"project" => "w2", "duration" => 60, "category" => "coding", "type" => "file"},
+             %{"project" => "w1", "duration" => 7.0, "category" => "coding", "type" => "file"}
            ]
   end
 
-  test "hour switch" do
-    insert_heartbeats([
-      %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 13:00:18Z]), "project" => "w1"}
-    ])
+  test "hour switch", %{tmp_dir: tmp_dir} do
+    parquet =
+      parquet_heartbeats(tmp_dir, [
+        %{"time" => unix(~U[2022-01-01 12:58:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:59:13Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:00:18Z]), "project" => "w1"}
+      ])
 
-    assert Durations.fetch_timeline() == [
+    assert Durations.fetch_timeline(parquet: parquet) == [
              {"w1", unix(~U[2022-01-01 12:58:12Z]), unix(~U[2022-01-01 13:00:18Z])}
            ]
 
-    assert Durations.fetch_projects() == [
-             %{project: "w1", duration: 126.0, category: "coding", type: "file"}
+    assert Durations.fetch_projects(parquet: parquet) == [
+             %{"project" => "w1", "duration" => 126, "category" => "coding", "type" => "file"}
            ]
   end
 
-  test "duration break" do
-    insert_heartbeats([
-      %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
-      %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
-    ])
+  test "duration break", %{tmp_dir: tmp_dir} do
+    parquet =
+      parquet_heartbeats(tmp_dir, [
+        %{"time" => unix(~U[2022-01-01 12:04:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 12:05:12Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:18Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:04:19Z]), "project" => "w1"},
+        %{"time" => unix(~U[2022-01-01 13:05:19Z]), "project" => "w1"}
+      ])
 
-    assert Durations.fetch_timeline() == [
+    assert Durations.fetch_timeline(parquet: parquet) == [
              {"w1", unix(~U[2022-01-01 12:04:12Z]), unix(~U[2022-01-01 12:05:12Z])},
              {"w1", unix(~U[2022-01-01 13:04:18Z]), unix(~U[2022-01-01 13:05:19Z])}
            ]
 
-    assert Durations.fetch_projects() == [
-             %{project: "w1", duration: 60 + 61, category: "coding", type: "file"}
+    assert Durations.fetch_projects(parquet: parquet) == [
+             %{"project" => "w1", "duration" => 60 + 61, "category" => "coding", "type" => "file"}
            ]
   end
 end

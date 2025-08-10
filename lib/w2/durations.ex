@@ -3,9 +3,6 @@ defmodule W2.Durations do
   Contains functions to aggregate durations
   """
 
-  alias W2.Repo
-  import Ecto.Query
-
   @doc """
   Translates naive datetime to local timezone depending on the date and relocations.
 
@@ -52,12 +49,12 @@ defmodule W2.Durations do
           {:project, String.t()}
           | {:category, String.t()}
           | {:type, String.t()}
-          | {:editor, String.t()}
           | {:branch, String.t()}
           | {:entity, String.t()}
           | {:from, Date.t()}
           | {:to, Date.t()}
-          | {:interval, pos_integer}
+          | {:interval, Duration.t()}
+          | {:parquet, Path.t() | [Path.t()]}
         ]) :: [
           {
             project :: String.t(),
@@ -66,63 +63,41 @@ defmodule W2.Durations do
           }
         ]
   def fetch_timeline(opts \\ []) do
-    query =
-      "heartbeats"
-      |> date_range(opts)
-      |> category(opts)
-      |> type(opts)
-      |> branch(opts)
-      |> entity(opts)
-      |> project(opts)
-      |> editor(opts)
-      |> order_by([h], h.time)
-      |> select([h], {coalesce(h.project, "(none)"), type(h.time, :integer)})
-
-    heartbeats = Repo.all(query)
     interval = opts[:interval] || W2.interval()
-    process_timeline(heartbeats, interval)
-  end
+    parquet = opts[:parquet] || W2.parquet()
 
-  defp process_timeline([{project, time} | heartbeats], duration_interval) do
-    process_timeline(heartbeats, project, time, time, [], duration_interval)
-  end
+    {where, params} = duck_where(opts, [:from, :to, :project, :category, :type, :branch, :entity])
+    params = Map.merge(params, %{"parquet" => parquet, "interval" => interval})
 
-  defp process_timeline([], _duration_interval), do: []
-
-  defp process_timeline(
-         [{project, time} | heartbeats],
-         prev_project,
-         first_time,
-         prev_time,
-         acc,
-         duration_interval
-       ) do
-    cond do
-      project != prev_project ->
-        last_time = if time - prev_time >= duration_interval, do: prev_time, else: time
-        acc = [{prev_project, first_time, last_time} | acc]
-        process_timeline(heartbeats, project, time, time, acc, duration_interval)
-
-      time - prev_time >= duration_interval ->
-        acc = [{prev_project, first_time, prev_time} | acc]
-        process_timeline(heartbeats, prev_project, time, time, acc, duration_interval)
-
-      true ->
-        process_timeline(heartbeats, prev_project, first_time, time, acc, duration_interval)
-    end
-  end
-
-  defp process_timeline([], prev_project, first_time, prev_time, acc, _duration_interval) do
-    :lists.reverse([{prev_project, first_time, prev_time} | acc])
-  end
-
-  defmacrop duration(interval) do
-    quote do
-      fragment(
-        "coalesce(sum(case when next - time >= ? then 0 else next - time end), 0)",
-        unquote(interval)
+    sql =
+      """
+      with base as (
+        select coalesce(project, '(none)') AS project, epoch(time)::int64 as time
+        from read_parquet($parquet) #{where} order by time
+      ), marked as (
+        select
+          project, time,
+          case
+            when
+              project != lag(project) over w
+              or (time - lag(time) over w) >= epoch($interval)::int32
+            then 1
+            else 0
+          end as is_new_group
+        from base window w as (order by time)
+      ), grouped as (
+        select project, time, sum(is_new_group) over (order by time) as group_id from marked
       )
-    end
+      select project, min(time) as start_time, max(time) as end_time from grouped
+      group by project, group_id
+      order by start_time
+      """
+
+    rows = W2.duck_q(sql, params)
+
+    Enum.map(rows, fn %{"project" => project, "start_time" => start_time, "end_time" => end_time} ->
+      {project, start_time, end_time}
+    end)
   end
 
   @doc """
@@ -134,7 +109,8 @@ defmodule W2.Durations do
           | {:editor, String.t()}
           | {:from, Date.t()}
           | {:to, Date.t()}
-          | {:interval, pos_integer}
+          | {:interval, Duration.t()}
+          | {:parquet, Path.t() | [Path.t()]}
         ]) :: [
           %{
             project: String.t(),
@@ -145,67 +121,85 @@ defmodule W2.Durations do
         ]
   def fetch_projects(opts \\ []) do
     interval = opts[:interval] || W2.interval()
+    parquet = opts[:parquet] || W2.parquet()
 
-    "heartbeats"
-    |> date_range(opts)
-    |> order_by([h], h.time)
-    |> windows([h], time: [order_by: h.time])
-    |> select([h], %{
-      project: coalesce(h.project, "(none)"),
-      category: h.category,
-      type: h.type,
-      time: h.time,
-      next: over(lead(h.time), :time),
-      editor: h.editor,
-      type: h.type
-    })
-    |> subquery()
-    |> category(opts)
-    |> type(opts)
-    |> editor(opts)
-    |> select([h], %{
-      project: h.project,
-      category: h.category,
-      type: h.type,
-      duration: selected_as(duration(^interval), :duration)
-    })
-    |> group_by([h], h.project)
-    |> order_by([h], desc: selected_as(:duration))
-    |> Repo.all()
+    {where1, params1} = duck_where(opts, [:from, :to])
+    {where2, params2} = duck_where(opts, [:project, :category, :type])
+
+    params =
+      %{"interval" => interval, "parquet" => parquet}
+      |> Map.merge(params1)
+      |> Map.merge(params2)
+
+    sql =
+      """
+      select project, category, type, coalesce(sum(duration)::int64, 0) as duration
+      from (
+        select
+          project, category, type, epoch(time) as time,
+          lead(time) over (order by time) as next,
+          next - time as raw_duration,
+          epoch(case
+            when raw_duration < $interval
+            then raw_duration
+            else interval '0 seconds'
+          end)::int32 as duration
+        from read_parquet($parquet)
+        #{where1}
+      )
+      #{where2}
+      group by project, category, type
+      order by duration desc
+      """
+
+    W2.duck_q(sql, params)
   end
 
   @doc """
   Aggregates durations into time spent per branch.
   """
   @spec fetch_branches([
-          {:project, String.t()} | {:from, Date.t()} | {:to, Date.t()} | {:interval, pos_integer}
+          {:project, String.t()}
+          | {:from, Date.t()}
+          | {:to, Date.t()}
+          | {:interval, Duration.t()}
+          | {:parquet, Path.t() | [Path.t()]}
         ]) :: [%{project: String.t(), branch: String.t(), duration: non_neg_integer}]
   def fetch_branches(opts \\ []) do
     interval = opts[:interval] || W2.interval()
+    parquet = opts[:parquet] || W2.parquet()
 
-    "heartbeats"
-    |> where([h], not is_nil(h.branch))
-    |> where([h], h.branch != "<<LAST_BRANCH>>")
-    |> date_range(opts)
-    |> order_by([h], h.time)
-    |> windows([h], time: [order_by: h.time])
-    |> select([h], %{
-      project: coalesce(h.project, "(none)"),
-      branch: h.branch,
-      time: h.time,
-      next: over(lead(h.time), :time)
-    })
-    |> subquery()
-    |> project(opts)
-    |> select([h], %{
-      project: h.project,
-      branch: h.branch,
-      duration: selected_as(duration(^interval), :duration)
-    })
-    |> group_by([h], [h.project, h.branch])
-    |> order_by([h], desc: selected_as(:duration))
-    |> limit(50)
-    |> Repo.all()
+    {where1, params1} = duck_where(opts, [:from, :to])
+    {where2, params2} = duck_where(opts, [:project])
+
+    params =
+      %{"interval" => interval, "parquet" => parquet}
+      |> Map.merge(params1)
+      |> Map.merge(params2)
+
+    sql = """
+    select project, branch, coalesce(sum(duration)::int64, 0) as duration
+    from (
+      select
+        project, branch, epoch(time) as time,
+        lead(time) over (order by time) as next,
+        next - time as raw_duration,
+        epoch(case
+          when raw_duration < $interval
+          then raw_duration
+          else interval '0 seconds'
+        end)::int32 as duration
+      from read_parquet($parquet)
+      #{where1}
+    )
+    #{where2}
+    group by project, branch
+    having branch is not null and branch != '<<LAST_BRANCH>>'
+    order by duration desc
+    limit 50
+    """
+
+    W2.duck_q(sql, params)
   end
 
   @doc """
@@ -215,11 +209,11 @@ defmodule W2.Durations do
           {:project, String.t()}
           | {:category, String.t()}
           | {:type, String.t()}
-          | {:editor, String.t()}
           | {:branch, String.t()}
           | {:from, Date.t()}
           | {:to, Date.t()}
-          | {:interval, pos_integer}
+          | {:interval, Duration.t()}
+          | {:parquet, Path.t() | [Path.t()]}
         ]) :: %{
           project: String.t(),
           category: String.t(),
@@ -229,113 +223,79 @@ defmodule W2.Durations do
         }
   def fetch_entities(opts \\ []) do
     interval = opts[:interval] || W2.interval()
+    parquet = opts[:parquet] || W2.parquet()
 
-    "heartbeats"
-    |> date_range(opts)
-    |> order_by([h], h.time)
-    |> windows([h], time: [order_by: h.time])
-    |> select([h], %{
-      project: coalesce(h.project, "(none)"),
-      entity: coalesce(h.entity, "(none)"),
-      category: h.category,
-      type: h.type,
-      time: h.time,
-      next: over(lead(h.time), :time),
-      editor: h.editor,
-      branch: h.branch
-    })
-    |> subquery()
-    |> project(opts)
-    |> category(opts)
-    |> type(opts)
-    |> editor(opts)
-    |> branch(opts)
-    |> select([h], %{
-      project: h.project,
-      entity: h.entity,
-      duration: selected_as(duration(^interval), :duration),
-      category: h.category,
-      type: h.type
-    })
-    |> group_by([h], [h.project, h.entity])
-    |> order_by([h], desc: selected_as(:duration))
-    |> limit(50)
-    |> Repo.all()
+    {where1, params1} = duck_where(opts, [:from, :to])
+    {where2, params2} = duck_where(opts, [:project, :category, :type, :branch])
+
+    params =
+      %{"interval" => interval, "parquet" => parquet}
+      |> Map.merge(params1)
+      |> Map.merge(params2)
+
+    sql = """
+    select
+      coalesce(project, '(none)') as project,
+      coalesce(entity, '(none)') as entity,
+      category,
+      type,
+      coalesce(sum(duration)::int64, 0) as duration
+    from (
+      select
+        project, entity, category, type, branch,
+        lead(time) over (order by time) as next,
+        next - time as raw_duration,
+        epoch(case
+          when raw_duration < $interval
+          then raw_duration
+          else interval '0 seconds'
+        end)::int32 as duration
+      from read_parquet($parquet)
+      #{where1}
+    )
+    #{where2}
+    group by project, entity, category, type
+    order by duration desc
+    limit 50
+    """
+
+    W2.duck_q(sql, params)
   end
 
-  @spec date_range(Ecto.Queryable.t(), [{:from, Date.t()} | {:to, Date.t()}]) ::
-          Ecto.Queryable.t()
-  defp date_range(query, opts) do
-    query =
-      if from = Keyword.get(opts, :from) do
-        where(query, [h], h.time > ^time(from))
-      else
-        query
-      end
+  defp duck_where(opts, keys) do
+    case Keyword.take(opts, keys) do
+      [] ->
+        {"", %{}}
 
-    if to = Keyword.get(opts, :to) do
-      where(query, [h], h.time < ^time(to))
-    else
-      query
+      filters ->
+        filters = Enum.reject(filters, fn {_, v} -> is_nil(v) end)
+
+        if filters == [] do
+          {"", %{}}
+        else
+          conds =
+            Enum.map_intersperse(filters, " and ", fn
+              {k, "(none)"} -> "#{k} is null"
+              {:from, _} -> "time >= $from"
+              {:to, _} -> "time <= $to"
+              {k, _} when k in [:entity, :editor] -> "#{k} like $#{k}"
+              {k, _} -> "#{k} = $#{k}"
+            end)
+
+          where = IO.iodata_to_binary(["where " | conds])
+
+          params =
+            filters
+            |> Enum.reject(fn {_, v} -> v == "(none)" end)
+            |> Map.new(fn {k, v} -> {Atom.to_string(k), prepare_param(k, v)} end)
+
+          {where, params}
+        end
     end
   end
 
-  @spec project(Ecto.Queryable.t(), [{:project, String.t()}]) :: Ecto.Queryable.t()
-  defp project(query, opts) do
-    case Keyword.get(opts, :project) do
-      nil -> query
-      "(none)" -> where(query, [h], is_nil(h.project))
-      project -> where(query, project: ^project)
-    end
-  end
-
-  @spec project(Ecto.Queryable.t(), [{:branch, String.t()}]) :: Ecto.Queryable.t()
-  defp branch(query, opts) do
-    case Keyword.get(opts, :branch) do
-      nil -> query
-      branch -> where(query, branch: ^branch)
-    end
-  end
-
-  @spec entity(Ecto.Queryable.t(), [{:entity, String.t()}]) :: Ecto.Queryable.t()
-  defp entity(query, opts) do
-    case Keyword.get(opts, :file) do
-      nil ->
-        query
-
-      file ->
-        pattern = "%" <> file
-        where(query, [h], like(h.entity, ^pattern))
-    end
-  end
-
-  @spec category(Ecto.Queryable.t(), [{:category, String.t()}]) :: Ecto.Queryable.t()
-  defp category(query, opts) do
-    case Keyword.get(opts, :category) do
-      nil -> query
-      category -> where(query, category: ^category)
-    end
-  end
-
-  @spec type(Ecto.Queryable.t(), [{:type, String.t()}]) :: Ecto.Queryable.t()
-  defp type(query, opts) do
-    case Keyword.get(opts, :type) do
-      nil -> query
-      type -> where(query, type: ^type)
-    end
-  end
-
-  @spec editor(Ecto.Queryable.t(), [{:editor, String.t()}]) :: Ecto.Queryable.t()
-  defp editor(query, opts) do
-    case Keyword.get(opts, :editor) do
-      nil ->
-        query
-
-      editor ->
-        pattern = editor <> "%"
-        where(query, [h], like(h.editor, ^pattern))
-    end
-  end
+  defp prepare_param(k, v) when k in [:entity, :editor], do: "%" <> v
+  defp prepare_param(_k, v), do: v
 
   @h24 24 * 60 * 60
 
@@ -422,8 +382,8 @@ defmodule W2.Durations do
   end
 
   @doc "Aggregates durations into 1-hour buckets"
-  def fetch_bucket_data(from, to) do
-    timeline = fetch_timeline(from: from, to: to)
+  def fetch_bucket_data(from, to, parquet \\ "heartbeats.parquet.zst") do
+    timeline = fetch_timeline(from: from, to: to, parquet: parquet)
     interval = interval(from, to)
 
     timeline
@@ -487,13 +447,4 @@ defmodule W2.Durations do
   def bucket_totals2([], prev_bucket, interval, inner_acc, outer_acc) do
     [{prev_bucket * interval, inner_acc} | outer_acc]
   end
-
-  defp time(%DateTime{} = dt), do: DateTime.to_unix(dt)
-
-  defp time(%NaiveDateTime{} = dt) do
-    dt |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
-  end
-
-  defp time(unix) when is_integer(unix) or is_float(unix), do: unix
-  defp time(%Date{} = date), do: time(DateTime.new!(date, Time.new!(0, 0, 0)))
 end

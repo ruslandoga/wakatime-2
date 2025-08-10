@@ -78,10 +78,7 @@ end
 # TODO
 # {:ok, duration_stmt} = Sqlite3.prepare(conn, "select duration(time) from heartbeats")
 
-IO.inspect(
-  heartbeats_count: W2.Repo.aggregate("heartbeats", :count),
-  durations_count: W2.Repo.aggregate("durations_300", :count)
-)
+IO.inspect(heartbeats_count: W2.Repo.aggregate("heartbeats", :count))
 
 Benchee.run(
   %{
@@ -103,3 +100,35 @@ Benchee.run(
   },
   memory_time: 2
 )
+
+# [heartbeats_count: 232662]
+# Operating System: macOS
+# CPU Information: Apple M2
+# Number of Available Cores: 8
+# Available memory: 8 GB
+# Elixir 1.18.1
+# Erlang 27.2
+# JIT enabled: true
+
+# Benchmark suite executing with the following configuration:
+# warmup: 2 s
+# time: 5 s
+# memory time: 2 s
+# reduction time: 0 ns
+# parallel: 1
+# inputs: none specified
+# Estimated total run time: 9 s
+
+# Benchmarking prepared ...
+# Calculating statistics...
+# Formatting results...
+
+# Name               ips        average  deviation         median         99th %
+# prepared          6.04      165.53 ms    ±12.90%      167.83 ms      216.51 ms
+
+# Memory usage statistics:
+
+# Name        Memory usage
+# prepared        92.61 MB
+
+# **All measurements for memory usage were the same**
