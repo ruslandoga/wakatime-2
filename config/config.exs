@@ -85,7 +85,7 @@ config :w2,
     # Chiang Mai
     {~D[2024-10-27], "Asia/Bangkok"},
     {~D[2024-12-26], "Europe/Moscow"},
-    # Osaka -> Onomichi -> Imabari -> Kyoto -> ...
+    # Osaka -> Onomichi -> Imabari -> Kyoto -> Matsumoto -> Tokyo
     {~D[2025-08-13], "Asia/Tokyo"}
   ]
 
