@@ -88,7 +88,8 @@ config :w2,
     # Onomichi -> Omishima -> Imabari (no stay) -> Kobe -> Kyoto -> Nagoya -> Matsumoto -> Tokyo
     {~D[2025-08-13], "Asia/Tokyo"},
     {~D[2025-09-11], "Europe/Moscow"}
-    # Hanoi -> Da Nang -> Saigon
+    # Hanoi -> Da Nang -> Saigon ???
+    # Bangkok -> Chiang Mai ???
   ]
 
 # Import environment specific config. This must remain at the bottom
