@@ -1,5 +1,4 @@
 defmodule W2.Release do
-  require Logger
   @app :w2
 
   defmodule Migrator do
