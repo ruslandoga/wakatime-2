@@ -17,6 +17,7 @@ jobs:
 
       - uses: erlef/setup-elixir@v1
         with:
+          version-type: strict
           version-file: .tool-versions
 
       - uses: actions/cache@v4
