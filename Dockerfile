@@ -8,7 +8,7 @@ FROM litestream/litestream:0.3.13 AS litestream
 # BUILD #
 #########
 
-FROM hexpm/elixir:1.18.2-erlang-27.2-alpine-3.21.2 AS build
+FROM hexpm/elixir:1.20.0-erlang-29.0.1-alpine-3.23.4 AS build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm brotli
@@ -47,7 +47,7 @@ RUN mix release
 # APP #
 #######
 
-FROM alpine:3.21.2 AS app
+FROM alpine:3.23.4 AS app
 
 RUN adduser -S -H -u 999 -G nogroup wakatime
 
