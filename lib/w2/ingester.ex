@@ -19,8 +19,8 @@ defmodule W2.Ingester do
   end
 
   defp prepare_heartbeat(%{"user_agent" => user_agent} = heartbeat, machine_name) do
-    ["wakatime/" <> _wakatime_version, os, _python_or_go_version, editor, _extension] =
-      String.split(user_agent, " ")
+    ["wakatime/" <> _wakatime_version, os | rest] = String.split(user_agent, " ")
+    editor = Enum.find(rest, &String.starts_with?(&1, "vscode/"))
 
     os = String.replace(os, ["(", ")"], "")
 
